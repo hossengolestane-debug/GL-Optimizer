@@ -91,7 +91,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
             }
             Add("App Market", _market.Check());
             Add("Optimization", _optimization.ListActions());
-            Add("Backups", _backups.List());
+            AddBackups(_backups.List());
         }
         catch (Exception ex)
         {
@@ -220,6 +220,23 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
                 + missing.ToString(System.Globalization.CultureInfo.InvariantCulture) + " not found.",
             present > 0 ? "Reported" : "Unknown",
             present > 0 ? StatusKind.Ready : StatusKind.Unavailable));
+    }
+
+    private void AddBackups(OperationResult<IReadOnlyList<GLOptimizer.Core.Models.BackupRecord>> result)
+    {
+        if (!result.Succeeded || result.Value is null)
+        {
+            Add("Backups", result);
+            return;
+        }
+
+        var damaged = result.Value.Count(record => record.Damaged);
+        Rows.Add(new DiagnosticRowModel(
+            "Backups",
+            result.Value.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " backup(s), "
+                + damaged.ToString(System.Globalization.CultureInfo.InvariantCulture) + " damaged.",
+            damaged > 0 ? "Needs attention" : "Reported",
+            damaged > 0 ? StatusKind.Attention : StatusKind.Ready));
     }
 
     private void Add<T>(string title, OperationResult<T> result)

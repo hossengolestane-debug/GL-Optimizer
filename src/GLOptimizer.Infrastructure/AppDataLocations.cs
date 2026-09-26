@@ -8,6 +8,7 @@ public sealed class AppDataLocations
     {
         Root = AppPaths.GetRoot(localAppData);
         LogsDirectory = AppPaths.GetLogsDirectory(Root);
+        BackupsDirectory = AppPaths.GetBackupsDirectory(Root);
         SettingsFile = AppPaths.GetSettingsFile(Root);
         ActiveLogFile = AppPaths.GetActiveLogFile(LogsDirectory);
     }
@@ -15,6 +16,8 @@ public sealed class AppDataLocations
     public string Root { get; }
 
     public string LogsDirectory { get; }
+
+    public string BackupsDirectory { get; }
 
     public string SettingsFile { get; }
 

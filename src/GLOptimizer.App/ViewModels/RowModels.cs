@@ -96,6 +96,6 @@ public sealed class InstallItem
     }
 }
 
-public sealed record BackupRow(string Name, string When, string SizeText, string StatusText, StatusKind Status);
+public sealed record BackupRow(string Id, string Name, string When, string SizeText, string StatusText, StatusKind Status);
 
 public sealed record LogRow(string Time, string Severity, string Category, string Message, string? Exception, StatusKind Kind);

@@ -7,6 +7,7 @@ public static class AppPaths
 {
     public const string FolderName = "GLOptimizer";
     public const string LogsFolderName = "Logs";
+    public const string BackupsFolderName = "Backups";
     public const string SettingsFileName = "settings.json";
     public const string ActiveLogFileName = "gloptimizer.log";
 
@@ -18,6 +19,12 @@ public static class AppPaths
         }
 
         return Path.Combine(localAppData, FolderName);
+    }
+
+    public static string GetBackupsDirectory(string root)
+    {
+        RequireRoot(root);
+        return Path.Combine(root, BackupsFolderName);
     }
 
     public static string GetLogsDirectory(string root)

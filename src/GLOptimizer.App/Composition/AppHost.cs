@@ -21,6 +21,7 @@ public static class AppHost
         services.AddGameLoopModule();
         services.AddMonitoringModule();
         services.AddSingleton<IFolderOpener, ExplorerFolderOpener>();
+        services.AddSingleton<IUserConfirmation, MessageBoxConfirmation>();
         services.AddSingleton<IPageViewModelFactory, PageViewModelFactory>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();

@@ -14,7 +14,7 @@ public static class PageCatalog
         new(AppPage.CodMobile, "COD Mobile", "Games", "Install presence is read from GameLoop local data when a verified install exists."),
         new(AppPage.PubgMobile, "PUBG Mobile", "Games", "Install presence is read from GameLoop local data when a verified install exists."),
         new(AppPage.Diagnostics, "Diagnostics", "System", "Local files, hardware, and a read-only GameLoop configuration report."),
-        new(AppPage.Backups, "Backups", "System", "Backup and restore are not implemented."),
+        new(AppPage.Backups, "Backups", "System", "Copy and restore discovered GameLoop configuration. Registry values are not written back."),
         new(AppPage.Logs, "Logs", "System", "Entries written by this app."),
         new(AppPage.Settings, "Settings", "System", "Local preferences for GL Optimizer.")
     ];

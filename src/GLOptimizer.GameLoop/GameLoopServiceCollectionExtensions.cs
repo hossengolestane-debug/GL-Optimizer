@@ -12,6 +12,7 @@ public static class GameLoopServiceCollectionExtensions
         services.AddSingleton<IGameLoopDetector, GameLoopDetector>();
         services.AddSingleton<IGameLoopConfigReader, WindowsGameLoopConfigReader>();
         services.AddSingleton<IGameLoopConfigDiscovery, GameLoopConfigDiscovery>();
+        services.AddSingleton<IBackupSource, GameLoopBackupSource>();
         services.AddSingleton<IProcessStarter, WindowsProcessStarter>();
         services.AddSingleton<IGameLoopLauncher, GameLoopLauncher>();
         services.AddSingleton<IAppMarketDiagnostics, NotImplementedAppMarketDiagnostics>();

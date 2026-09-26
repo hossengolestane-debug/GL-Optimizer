@@ -33,7 +33,6 @@ public class Phase0StubTests
         var market = provider.GetRequiredService<IAppMarketDiagnostics>().Check();
         var backups = provider.GetRequiredService<IBackupService>();
         var listed = backups.List();
-        var created = backups.Create("manual");
         var optimization = provider.GetRequiredService<IOptimizationService>();
         var actions = optimization.ListActions();
         var applied = optimization.Apply("noop");
@@ -47,25 +46,21 @@ public class Phase0StubTests
         Assert.NotNull(config.Value);
         AssertNotImplemented(frames);
         AssertNotImplemented(market);
-        AssertNotImplemented(listed);
         AssertNotImplemented(actions);
-        Assert.Equal(OperationStatus.NotImplemented, created.Status);
+        Assert.Equal(OperationStatus.Success, listed.Status);
+        Assert.NotNull(listed.Value);
         Assert.Equal(OperationStatus.NotImplemented, applied.Status);
         Assert.Null(frames.Value);
         Assert.Null(market.Value);
-        Assert.Null(listed.Value);
         Assert.Null(actions.Value);
         Assert.Equal(before, Snapshot(temp.Root));
     }
 
     [Fact]
-    public void Backup_and_optimization_stubs_reject_blank_ids()
+    public void Optimization_stub_rejects_blank_ids()
     {
-        var backups = new GLOptimizer.Infrastructure.Stubs.NotImplementedBackupService();
         var optimization = new GLOptimizer.Infrastructure.Stubs.NotImplementedOptimizationService();
 
-        Assert.Throws<ArgumentException>(() => backups.Create(" "));
-        Assert.Throws<ArgumentException>(() => backups.Restore(""));
         Assert.Throws<ArgumentException>(() => optimization.Apply(" "));
     }
 

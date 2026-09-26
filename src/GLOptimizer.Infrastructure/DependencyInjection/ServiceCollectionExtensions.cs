@@ -1,6 +1,7 @@
 using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Infrastructure.Backup;
 using GLOptimizer.Infrastructure.Logging;
 using GLOptimizer.Infrastructure.Navigation;
 using GLOptimizer.Infrastructure.Settings;
@@ -25,7 +26,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISettingsStore, JsonSettingsStore>();
         services.AddSingleton<ILogStore, FileLogStore>();
         services.AddSingleton<INavigationService, NavigationService>();
-        services.AddSingleton<IBackupService, NotImplementedBackupService>();
+        services.AddSingleton<IBackupService, FileBackupService>();
         services.AddSingleton<IOptimizationService, NotImplementedOptimizationService>();
 
         services.AddLogging(builder =>

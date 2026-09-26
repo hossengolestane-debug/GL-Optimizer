@@ -119,6 +119,10 @@ public sealed class BackupRecord
     public DateTimeOffset CreatedAt { get; init; }
 
     public long SizeBytes { get; init; }
+
+    public bool Damaged { get; init; }
+
+    public string? Problem { get; init; }
 }
 
 public sealed class OptimizationAction
