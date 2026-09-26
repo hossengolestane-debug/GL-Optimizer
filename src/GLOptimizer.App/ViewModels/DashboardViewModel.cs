@@ -277,6 +277,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable, IDisposab
 
         OnPropertyChanged(nameof(HasInstalls));
         _log.Write(LogSeverity.Information, "Scan", OverallText + ". " + StatusLine);
+        ScanCheckLog.Write(_log, found);
         ReloadActivity();
     }
 

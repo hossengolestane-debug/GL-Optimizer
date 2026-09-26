@@ -447,20 +447,7 @@ public sealed class OptimizationEngine : IOptimizationService
         return count.ToString(CultureInfo.InvariantCulture) + " " + word + (count == 1 ? string.Empty : "s");
     }
 
-    private static List<string> Roots(GameLoopScan scan)
-    {
-        var roots = new List<string>();
-        foreach (var installation in scan.Installations)
-        {
-            var normalized = InstallPathRules.TryNormalize(installation.InstallPath);
-            if (normalized is not null)
-            {
-                roots.Add(normalized);
-            }
-        }
-
-        return roots;
-    }
+    private static List<string> Roots(GameLoopScan scan) => GameLoopLocations.InstallAndData(scan).ToList();
 
     private static List<string> UserDirectories(IReadOnlyList<string> files)
     {

@@ -5,6 +5,44 @@ namespace GLOptimizer.Core.Detection;
 /// </summary>
 public static class InstallPathRules
 {
+    /// <summary>
+    /// Takes the first quoted path, or the path through ".exe", then normalizes it.
+    /// Trailing uninstall arguments are not part of the path.
+    /// </summary>
+    public static string? TryNormalizeCommand(string? command)
+    {
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            return null;
+        }
+
+        var trimmed = command.Trim();
+        string? extracted = null;
+        if (trimmed.Length > 1 && trimmed[0] == '"')
+        {
+            var end = trimmed.IndexOf('"', 1);
+            if (end > 1)
+            {
+                extracted = trimmed[1..end];
+            }
+        }
+
+        if (extracted is null)
+        {
+            var exe = trimmed.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+            if (exe >= 0)
+            {
+                var after = exe + 4;
+                if (after == trimmed.Length || trimmed[after] is ' ' or ',')
+                {
+                    extracted = trimmed[..after];
+                }
+            }
+        }
+
+        return TryNormalize(extracted ?? trimmed);
+    }
+
     public static string? TryNormalize(string? path)
     {
         var prepared = Prepare(path);

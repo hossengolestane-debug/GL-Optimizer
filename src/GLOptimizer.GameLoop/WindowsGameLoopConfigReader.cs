@@ -9,7 +9,7 @@ public sealed class WindowsGameLoopConfigReader : IGameLoopConfigReader
 {
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".ini", ".cfg", ".txt", ".json", ".xml"
+        ".ini", ".cfg", ".txt", ".conf", ".json", ".xml"
     };
 
     public ConfigProbe ProbeFile(string path, bool readText)
@@ -83,9 +83,124 @@ public sealed class WindowsGameLoopConfigReader : IGameLoopConfigReader
         if (!string.IsNullOrWhiteSpace(roaming))
         {
             files.Add(Path.Combine(roaming, "AndroidTbox", "TVM_100.xml"));
+            files.Add(Path.Combine(roaming, "Tencent", "GameLoop", "config", "com.tencent.ig", "smk.conf"));
+            files.Add(Path.Combine(roaming, "Tencent", "MobileGamePC", "AppMarket3", "apklocalpkgs.json"));
         }
 
         return files;
+    }
+
+    public IReadOnlyList<SupplementalRegistry> ReadSupplementalRegistries()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return [];
+        }
+
+        return ReadSupplementalOnWindows();
+    }
+
+    public IReadOnlyList<string> ListSiblingConfigs(string directory)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+            {
+                return [];
+            }
+
+            var info = new DirectoryInfo(directory);
+            if (info.Attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                return [];
+            }
+
+            var files = new List<string>();
+            foreach (var file in info.EnumerateFiles("*.conf"))
+            {
+                if (file.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                {
+                    continue;
+                }
+
+                files.Add(file.FullName);
+                if (files.Count >= 40)
+                {
+                    break;
+                }
+            }
+
+            return files;
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static IReadOnlyList<SupplementalRegistry> ReadSupplementalOnWindows()
+    {
+        var specs = new (RegistryHive Hive, string SubKey, string Display)[]
+        {
+            (RegistryHive.CurrentUser, @"Software\Tencent\Call-of-Duty-Mobile-PCLauncher", @"HKCU\Software\Tencent\Call-of-Duty-Mobile-PCLauncher"),
+            (RegistryHive.CurrentUser, @"Software\Tencent\Call-of-Duty", @"HKCU\Software\Tencent\Call-of-Duty"),
+            (RegistryHive.CurrentUser, @"Software\Tencent\GameLoop", @"HKCU\Software\Tencent\GameLoop"),
+            (RegistryHive.LocalMachine, @"SOFTWARE\Tencent\GameLoop", @"HKLM\SOFTWARE\Tencent\GameLoop")
+        };
+        var results = new List<SupplementalRegistry>();
+        foreach (var spec in specs)
+        {
+            results.Add(ReadSupplemental(spec.Hive, spec.SubKey, spec.Display));
+        }
+
+        return results;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static SupplementalRegistry ReadSupplemental(RegistryHive hive, string subKey, string display)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var found = false;
+        var failed = false;
+        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+        {
+            try
+            {
+                using var root = RegistryKey.OpenBaseKey(hive, view);
+                using var key = root.OpenSubKey(subKey, writable: false);
+                if (key is null)
+                {
+                    continue;
+                }
+
+                found = true;
+                foreach (var name in key.GetValueNames())
+                {
+                    if (!string.IsNullOrWhiteSpace(name) && name.Length <= 80)
+                    {
+                        names.Add(name);
+                    }
+
+                    if (names.Count >= 24)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                failed = true;
+            }
+        }
+
+        return new SupplementalRegistry
+        {
+            Path = display,
+            Found = found,
+            Failed = failed && !found,
+            ValueNames = names.Order(StringComparer.OrdinalIgnoreCase).ToArray()
+        };
     }
 
     [SupportedOSPlatform("windows")]

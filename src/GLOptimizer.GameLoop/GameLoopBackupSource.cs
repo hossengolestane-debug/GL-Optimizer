@@ -30,15 +30,7 @@ public sealed class GameLoopBackupSource : IBackupSource
             return BackupSourceSnapshot.Failed(scan.Error ?? "GameLoop could not be scanned.");
         }
 
-        var roots = new List<string>();
-        foreach (var installation in scan.Value.Installations)
-        {
-            var normalized = InstallPathRules.TryNormalize(installation.InstallPath);
-            if (normalized is not null)
-            {
-                roots.Add(normalized);
-            }
-        }
+        var roots = GameLoopLocations.InstallAndData(scan.Value).ToList();
 
         var config = await _discovery.DiscoverAsync(roots, cancellationToken).ConfigureAwait(false);
         if (!config.Succeeded || config.Value is null)

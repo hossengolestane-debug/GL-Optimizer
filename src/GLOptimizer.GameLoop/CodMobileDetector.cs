@@ -1,4 +1,5 @@
 using GLOptimizer.Core.Abstractions;
+using GLOptimizer.Core.Detection;
 using GLOptimizer.Core.Models;
 
 namespace GLOptimizer.GameLoop;
@@ -41,20 +42,11 @@ public sealed class CodMobileDetector
             };
         }
 
-        var paths = new List<string>();
-        foreach (var installation in scan.Value.Installations)
-        {
-            if (!string.IsNullOrWhiteSpace(installation.InstallPath))
-            {
-                paths.Add(installation.InstallPath);
-            }
-        }
-
         return new CodMobileDetection
         {
             Succeeded = true,
             Presence = scan.Value.CodMobile,
-            InstallPaths = paths
+            InstallPaths = GameLoopLocations.InstallAndData(scan.Value)
         };
     }
 }

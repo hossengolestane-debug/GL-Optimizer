@@ -10,7 +10,7 @@ public sealed class WindowsProcessProbe : IProcessProbe, IDisposable
 {
     private readonly object _gate = new();
     private readonly Dictionary<int, Process> _handles = [];
-    private readonly Dictionary<int, string> _paths = [];
+    private readonly Dictionary<int, string?> _paths = [];
     private DateTimeOffset _nextMembership = DateTimeOffset.MinValue;
     private bool _membershipFailed;
     private bool _unreadable;
@@ -86,7 +86,7 @@ public sealed class WindowsProcessProbe : IProcessProbe, IDisposable
                     continue;
                 }
 
-                string? path;
+                string? path = null;
                 try
                 {
                     path = process.MainModule?.FileName;
@@ -94,15 +94,12 @@ public sealed class WindowsProcessProbe : IProcessProbe, IDisposable
                 catch (Exception)
                 {
                     unreadable = true;
-                    process.Dispose();
-                    continue;
                 }
 
                 if (string.IsNullOrWhiteSpace(path))
                 {
                     unreadable = true;
-                    process.Dispose();
-                    continue;
+                    path = null;
                 }
 
                 seen.Add(process.Id);

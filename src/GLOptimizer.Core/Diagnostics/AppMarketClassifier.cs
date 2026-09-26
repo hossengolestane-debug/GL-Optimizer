@@ -77,7 +77,7 @@ public static class AppMarketClassifier
                 "Version file name sits inside a known COD Mobile package directory. " + Assumption);
         }
 
-        var underAppMarket = HasSegment(normalized, "AppMarket");
+        var underAppMarket = HasAppMarket(normalized);
         if (underAppMarket && isDirectory && IsCacheName(name))
         {
             return Item(
@@ -183,6 +183,21 @@ public static class AppMarketClassifier
 
         var parent = normalized[..slash];
         return IsCacheName(NameOf(parent)) || HasSegment(parent, "cache") || HasSegment(parent, "caches");
+    }
+
+    private static bool HasAppMarket(string normalized)
+    {
+        var parts = normalized.Split('/');
+        foreach (var part in parts)
+        {
+            if (part.Equals("AppMarket", StringComparison.OrdinalIgnoreCase)
+                || part.Equals("AppMarket3", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool HasSegment(string normalized, string segment)

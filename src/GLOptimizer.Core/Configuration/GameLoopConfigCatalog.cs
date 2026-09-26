@@ -34,6 +34,16 @@ public static class GameLoopConfigCatalog
         new(["app.ini"], ConfigFileKind.EngineSettings)
     ];
 
+    /// <summary>
+    /// Files under a GameLoopData directory. Probed only when that folder name is GameLoopData.
+    /// </summary>
+    public static IReadOnlyList<ConfigCandidate> DataRelative { get; } =
+    [
+        new(["Component", "GameLoop", "Config.json"], ConfigFileKind.EngineSettings),
+        new(["Component", "GameLoop", "Androws.json"], ConfigFileKind.EngineSettings),
+        new(["Component", "GameLoop", "deviceConfig.json"], ConfigFileKind.EngineSettings)
+    ];
+
     public static IReadOnlyList<string> UserFileNames { get; } =
     [
         "config.ini",

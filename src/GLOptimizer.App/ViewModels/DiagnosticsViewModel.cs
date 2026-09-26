@@ -221,11 +221,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
             return;
         }
 
-        var paths = result.Value.Installations
-            .Select(installation => installation.InstallPath)
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Cast<string>()
-            .ToArray();
+        var paths = GameLoopLocations.InstallAndData(result.Value);
         var config = await _config.DiscoverAsync(paths, token);
         if (token.IsCancellationRequested)
         {

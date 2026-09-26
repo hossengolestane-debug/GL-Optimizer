@@ -28,9 +28,9 @@ Services return `OperationResult` or `OperationResult<T>`.
 
 `PerformanceSampler` publishes `MetricSample` values from a background timer. View models copy them onto the UI thread. The sampler stops when monitoring is turned off, when the user leaves the dashboard and Monitoring pages, and when the process exits.
 
-`IGameLoopEnvironment` supplies uninstall hints, candidate directories, Start Menu targets, process paths, and bounded directory walks. `GameLoopDetector` accepts a directory only when a known launcher file exists under it. Process rows are included only when the executable path is inside that install.
+`IGameLoopEnvironment` supplies product registry keys in the 64-bit and 32-bit views, uninstall hints, candidate directories, Start Menu targets, process names, and bounded directory walks. `GameLoopDetector` accepts a directory when a known launcher exists under it, including `Application\GameLoopLauncher.exe`, or when `Application\Uninstall.exe` marks the install. The install root is the highest matching directory. A `GameLoop*` process with no readable path still counts as running. The scan records every registry key, path, and process name it tried. `HKLM` is read only.
 
-`GameLoopConfigDiscovery` checks a fixed list of config, key-map, and registry locations for those verified roots. It parses only small text files and only published keys. Null settings stay Unknown. It does not write.
+`GameLoopConfigDiscovery` checks a fixed list of config, key-map, and registry locations for those verified roots, plus GameLoopData files and one level of `app\config\*.conf`. It parses only small text files and only published keys. Unrecognized names, including Call of Duty launcher values and `HKLM\SOFTWARE\Tencent\GameLoop`, are shown read-only and are not written. Null settings stay Unknown.
 
 `FileBackupService` copies only files that source marked present and that sit under a verified install or a known user config directory. Restore writes those recorded paths after a dry run, a hash check, a pre-restore backup, and confirmation. It refuses traversal, reparse points, and a running GameLoop. Registry values in the manifest stay text.
 

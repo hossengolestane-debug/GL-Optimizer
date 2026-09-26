@@ -5,6 +5,12 @@ public static class GameLoopNames
     public static IReadOnlyList<string> ProcessNames { get; } =
     [
         "GameLoop",
+        "GameLoopAssistant",
+        "GameLoopDldSvr",
+        "GameLoopEmulator",
+        "GameLoopService",
+        "GameLoopVm",
+        "GameLoopLauncher",
         "AppMarket",
         "TxGameAssistant",
         "AndroidEmulator",
@@ -38,6 +44,6 @@ public static class GameLoopNames
             }
         }
 
-        return false;
+        return name.StartsWith("GameLoop", StringComparison.OrdinalIgnoreCase);
     }
 }

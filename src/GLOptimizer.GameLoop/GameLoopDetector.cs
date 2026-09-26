@@ -62,10 +62,15 @@ public sealed class GameLoopDetector : IGameLoopDetector
     {
         cancellationToken.ThrowIfCancellationRequested();
         var warnings = new List<string>();
-        var hints = ReadHints(warnings);
+        var checks = new List<ScanCheck>();
+        var registrations = ReadRegistrations(warnings, checks);
+        var uninstall = ReadUninstall(warnings, checks);
+        var hints = uninstall.Hints;
         var processes = ReadProcesses(warnings);
+        AddProcessChecks(checks, processes);
         var brokenHint = false;
-        var candidates = CollectCandidates(hints, processes, ref brokenHint);
+        var candidates = CollectCandidates(registrations, hints, processes, ref brokenHint);
+        AddPathChecks(checks, candidates);
 
         var verified = new Dictionary<string, VerifiedInstall>(StringComparer.OrdinalIgnoreCase);
         foreach (var candidate in candidates)
@@ -84,8 +89,11 @@ public sealed class GameLoopDetector : IGameLoopDetector
         foreach (var match in verified.Values)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            installations.Add(BuildInstallation(match, hints, processes, warnings));
+            installations.Add(BuildInstallation(match, registrations, hints, processes, warnings));
         }
+
+        var dataRoots = CollectDataRoots(registrations, checks);
+        var marketRoots = CollectMarketRoots(checks);
 
         MobileGamePresence pubg;
         MobileGamePresence cod;
@@ -123,20 +131,100 @@ public sealed class GameLoopDetector : IGameLoopDetector
             PubgMobile = pubg,
             CodMobile = cod,
             BrokenRegistration = brokenHint && installations.Count == 0,
-            Warnings = warnings
+            Warnings = warnings,
+            Checks = checks,
+            DataRoots = dataRoots,
+            MarketRoots = marketRoots
         };
     }
 
-    private IReadOnlyList<UninstallHint> ReadHints(List<string> warnings)
+    private IReadOnlyList<ProductRegistration> ReadRegistrations(List<string> warnings, List<ScanCheck> checks)
     {
         try
         {
-            return _environment.ReadUninstallHints();
+            var registrations = _environment.ReadProductRegistrations();
+            foreach (var registration in registrations)
+            {
+                checks.Add(new ScanCheck
+                {
+                    Kind = "Registry",
+                    Target = string.IsNullOrWhiteSpace(registration.Location) ? @"SOFTWARE\Tencent\GameLoop" : registration.Location,
+                    Found = registration.Found,
+                    Detail = RegistrationDetail(registration)
+                });
+            }
+
+            return registrations;
+        }
+        catch (Exception)
+        {
+            warnings.Add("GameLoop registry keys could not be read.");
+            checks.Add(new ScanCheck
+            {
+                Kind = "Registry",
+                Target = @"SOFTWARE\Tencent\GameLoop",
+                Found = false,
+                Detail = "could not be read"
+            });
+            return [];
+        }
+    }
+
+    private static string? RegistrationDetail(ProductRegistration registration)
+    {
+        if (!registration.Found)
+        {
+            return registration.Detail;
+        }
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(registration.Version))
+        {
+            parts.Add("Version " + registration.Version.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(registration.InstallPath))
+        {
+            parts.Add("InstallPath");
+        }
+
+        if (!string.IsNullOrWhiteSpace(registration.DataPath))
+        {
+            parts.Add("GameLoopData");
+        }
+
+        return parts.Count == 0 ? registration.Detail : string.Join(", ", parts);
+    }
+
+    private UninstallRead ReadUninstall(List<string> warnings, List<ScanCheck> checks)
+    {
+        try
+        {
+            var read = _environment.ReadUninstall();
+            foreach (var attempt in read.Attempts)
+            {
+                checks.Add(new ScanCheck
+                {
+                    Kind = "Registry",
+                    Target = string.IsNullOrWhiteSpace(attempt.Location) ? "Uninstall" : attempt.Location,
+                    Found = attempt.Found,
+                    Detail = attempt.Detail
+                });
+            }
+
+            return read;
         }
         catch (Exception)
         {
             warnings.Add("Uninstall entries could not be read.");
-            return [];
+            checks.Add(new ScanCheck
+            {
+                Kind = "Registry",
+                Target = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                Found = false,
+                Detail = "could not be read"
+            });
+            return new UninstallRead([], []);
         }
     }
 
@@ -153,9 +241,27 @@ public sealed class GameLoopDetector : IGameLoopDetector
         }
     }
 
-    private List<string> CollectCandidates(IReadOnlyList<UninstallHint> hints, ProcessQueryResult processes, ref bool brokenHint)
+    private List<string> CollectCandidates(
+        IReadOnlyList<ProductRegistration> registrations,
+        IReadOnlyList<UninstallHint> hints,
+        ProcessQueryResult processes,
+        ref bool brokenHint)
     {
         var candidates = new List<string>();
+        foreach (var registration in registrations)
+        {
+            if (!registration.Found)
+            {
+                continue;
+            }
+
+            var install = InstallPathRules.TryNormalize(registration.InstallPath);
+            if (install is not null && (_environment.FileExists(install) || _environment.DirectoryExists(install)))
+            {
+                candidates.Add(install);
+            }
+        }
+
         foreach (var hint in hints)
         {
             if (!GameLoopNames.IsProduct(hint.DisplayName))
@@ -179,6 +285,13 @@ public sealed class GameLoopDetector : IGameLoopDetector
                 }
             }
 
+            var command = InstallPathRules.TryNormalizeCommand(hint.UninstallString);
+            if (command is not null && (_environment.FileExists(command) || _environment.DirectoryExists(command)))
+            {
+                candidates.Add(command);
+                rooted = true;
+            }
+
             if (!rooted)
             {
                 brokenHint = true;
@@ -199,6 +312,156 @@ public sealed class GameLoopDetector : IGameLoopDetector
         }
 
         return candidates;
+    }
+
+    private void AddPathChecks(List<ScanCheck> checks, IReadOnlyList<string> candidates)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var candidate in candidates)
+        {
+            var target = InstallPathRules.TryNormalize(candidate) ?? candidate.Trim();
+            if (target.Length == 0 || !seen.Add(target))
+            {
+                continue;
+            }
+
+            var found = _environment.FileExists(target) || _environment.DirectoryExists(target);
+            checks.Add(new ScanCheck
+            {
+                Kind = "Path",
+                Target = target,
+                Found = found
+            });
+        }
+    }
+
+    private void AddProcessChecks(List<ScanCheck> checks, ProcessQueryResult query)
+    {
+        var listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in GameLoopNames.ProcessNames)
+        {
+            listed.Add(name);
+            checks.Add(ProcessCheck(name, query));
+        }
+
+        if (!query.Available)
+        {
+            return;
+        }
+
+        foreach (var process in query.Processes)
+        {
+            if (!GameLoopNames.IsProcess(process.ProcessName) || !listed.Add(process.ProcessName))
+            {
+                continue;
+            }
+
+            checks.Add(ProcessCheck(process.ProcessName, query));
+        }
+    }
+
+    private static ScanCheck ProcessCheck(string name, ProcessQueryResult query)
+    {
+        if (!query.Available)
+        {
+            return new ScanCheck
+            {
+                Kind = "Process",
+                Target = name,
+                Found = false,
+                Detail = "process list could not be read"
+            };
+        }
+
+        var matches = new List<ProcessObservation>();
+        foreach (var process in query.Processes)
+        {
+            if (process.ProcessName.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add(process);
+            }
+        }
+
+        if (matches.Count == 0)
+        {
+            return new ScanCheck { Kind = "Process", Target = name, Found = false };
+        }
+
+        var pathless = true;
+        foreach (var match in matches)
+        {
+            if (!string.IsNullOrWhiteSpace(match.ExecutablePath))
+            {
+                pathless = false;
+                break;
+            }
+        }
+
+        return new ScanCheck
+        {
+            Kind = "Process",
+            Target = name,
+            Found = true,
+            Detail = pathless ? "path unavailable" : null
+        };
+    }
+
+    private List<string> CollectDataRoots(IReadOnlyList<ProductRegistration> registrations, List<ScanCheck> checks)
+    {
+        var roots = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var registration in registrations)
+        {
+            var data = InstallPathRules.TryNormalize(registration.DataPath);
+            if (data is null || !seen.Add(data))
+            {
+                continue;
+            }
+
+            var found = _environment.DirectoryExists(data);
+            checks.Add(new ScanCheck
+            {
+                Kind = "Path",
+                Target = data,
+                Found = found,
+                Detail = "GameLoopData"
+            });
+            if (found)
+            {
+                roots.Add(data);
+            }
+        }
+
+        return roots;
+    }
+
+    private List<string> CollectMarketRoots(List<ScanCheck> checks)
+    {
+        var roots = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var raw in SafeList(_environment.MarketDirectories))
+        {
+            var market = InstallPathRules.TryNormalize(raw);
+            if (market is null || !seen.Add(market))
+            {
+                continue;
+            }
+
+            var found = _environment.DirectoryExists(market);
+            checks.Add(new ScanCheck
+            {
+                Kind = "Path",
+                Target = market,
+                Found = found,
+                Detail = "App Market"
+            });
+            if (found)
+            {
+                roots.Add(market);
+            }
+        }
+
+        return roots;
     }
 
     private IReadOnlyList<string> SafeList(Func<IReadOnlyList<string>> read)
@@ -242,12 +505,13 @@ public sealed class GameLoopDetector : IGameLoopDetector
             return null;
         }
 
+        VerifiedInstall? best = null;
         for (var hop = 0; hop <= ParentHops && current is not null; hop++)
         {
             var launcher = FindLauncher(current);
-            if (launcher is not null)
+            if (launcher is not null || HasMarker(current))
             {
-                return new VerifiedInstall(current, launcher);
+                best = new VerifiedInstall(current, launcher);
             }
 
             var parent = Path.GetDirectoryName(Trim(current));
@@ -260,7 +524,20 @@ public sealed class GameLoopDetector : IGameLoopDetector
             current = next;
         }
 
-        return null;
+        return best;
+    }
+
+    private bool HasMarker(string root)
+    {
+        foreach (var segments in GameLoopLayout.MarkerSegments)
+        {
+            if (_environment.FileExists(GameLoopLayout.Combine(root, segments)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private string? FindLauncher(string root)
@@ -279,6 +556,7 @@ public sealed class GameLoopDetector : IGameLoopDetector
 
     private GameLoopInstallation BuildInstallation(
         VerifiedInstall match,
+        IReadOnlyList<ProductRegistration> registrations,
         IReadOnlyList<UninstallHint> hints,
         ProcessQueryResult processes,
         List<string> warnings)
@@ -287,17 +565,68 @@ public sealed class GameLoopDetector : IGameLoopDetector
         return new GameLoopInstallation
         {
             InstallPath = match.Root,
-            Version = ResolveVersion(match.Root, match.Launcher, hints, warnings),
+            Version = ResolveVersion(match.Root, match.Launcher, registrations, hints, warnings),
             Engine = ResolveEngine(match.Root),
             RunStatus = status,
             LauncherPath = match.Launcher,
+            DataPath = ResolveDataPath(match.Root, registrations, warnings),
             Processes = listed
         };
     }
 
-    private string? ResolveVersion(string root, string launcher, IReadOnlyList<UninstallHint> hints, List<string> warnings)
+    private string? ResolveDataPath(string root, IReadOnlyList<ProductRegistration> registrations, List<string> warnings)
+    {
+        var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var registration in registrations)
+        {
+            if (!registration.Found || string.IsNullOrWhiteSpace(registration.InstallPath))
+            {
+                continue;
+            }
+
+            if (!InstallPathRules.IsUnderRoot(registration.InstallPath, root))
+            {
+                continue;
+            }
+
+            var data = InstallPathRules.TryNormalize(registration.DataPath);
+            if (data is not null && _environment.DirectoryExists(data))
+            {
+                found.Add(data);
+            }
+        }
+
+        if (found.Count > 1)
+        {
+            warnings.Add("Conflicting GameLoop data paths were reported for one install.");
+            return null;
+        }
+
+        return found.Count == 1 ? found.First() : null;
+    }
+
+    private string? ResolveVersion(
+        string root,
+        string? launcher,
+        IReadOnlyList<ProductRegistration> registrations,
+        IReadOnlyList<UninstallHint> hints,
+        List<string> warnings)
     {
         var found = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var registration in registrations)
+        {
+            if (!registration.Found || !InstallPathRules.IsUnderRoot(registration.InstallPath, root))
+            {
+                continue;
+            }
+
+            var version = VersionText.Normalize(registration.Version);
+            if (version is not null)
+            {
+                found.Add(version);
+            }
+        }
+
         foreach (var hint in hints)
         {
             if (!GameLoopNames.IsProduct(hint.DisplayName) || !HintApplies(hint, root))
@@ -323,13 +652,14 @@ public sealed class GameLoopDetector : IGameLoopDetector
             return found.First();
         }
 
-        return _environment.TryReadFileVersion(launcher);
+        return string.IsNullOrWhiteSpace(launcher) ? null : _environment.TryReadFileVersion(launcher);
     }
 
     private static bool HintApplies(UninstallHint hint, string root)
     {
         return InstallPathRules.IsUnderRoot(hint.InstallLocation, root)
-            || InstallPathRules.IsUnderRoot(hint.DisplayIcon, root);
+            || InstallPathRules.IsUnderRoot(hint.DisplayIcon, root)
+            || InstallPathRules.IsUnderRoot(InstallPathRules.TryNormalizeCommand(hint.UninstallString), root);
     }
 
     private string? ResolveEngine(string root)
@@ -355,8 +685,20 @@ public sealed class GameLoopDetector : IGameLoopDetector
         var listed = new List<GameLoopProcessInfo>();
         foreach (var process in query.Processes)
         {
-            if (string.IsNullOrWhiteSpace(process.ExecutablePath))
+            var pathless = string.IsNullOrWhiteSpace(process.ExecutablePath);
+            if (pathless)
             {
+                if (!GameLoopNames.IsProcess(process.ProcessName))
+                {
+                    continue;
+                }
+
+                listed.Add(new GameLoopProcessInfo
+                {
+                    ProcessId = process.ProcessId,
+                    ProcessName = process.ProcessName,
+                    ExecutablePath = string.Empty
+                });
                 continue;
             }
 
@@ -532,5 +874,5 @@ public sealed class GameLoopDetector : IGameLoopDetector
     private static string Trim(string path) =>
         path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-    private sealed record VerifiedInstall(string Root, string Launcher);
+    private sealed record VerifiedInstall(string Root, string? Launcher);
 }

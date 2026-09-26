@@ -1,8 +1,36 @@
+using GLOptimizer.Core.Detection;
+
 namespace GLOptimizer.GameLoop;
 
 public interface IGameLoopEnvironment
 {
     IReadOnlyList<UninstallHint> ReadUninstallHints();
+
+    UninstallRead ReadUninstall()
+    {
+        var hints = ReadUninstallHints();
+        var attempts = new List<RegistryAttempt>();
+        foreach (var hint in hints)
+        {
+            if (!GameLoopNames.IsProduct(hint.DisplayName))
+            {
+                continue;
+            }
+
+            attempts.Add(new RegistryAttempt
+            {
+                Location = string.IsNullOrWhiteSpace(hint.Source) ? "Uninstall\\" + hint.DisplayName : hint.Source,
+                Found = true,
+                Detail = hint.DisplayVersion
+            });
+        }
+
+        return new UninstallRead(hints, attempts);
+    }
+
+    IReadOnlyList<ProductRegistration> ReadProductRegistrations() => [];
+
+    IReadOnlyList<string> MarketDirectories() => [];
 
     IReadOnlyList<string> CandidateDirectories();
 

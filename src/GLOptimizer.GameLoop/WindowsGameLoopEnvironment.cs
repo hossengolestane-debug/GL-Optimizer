@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.Versioning;
 using GLOptimizer.Core.Detection;
@@ -20,38 +21,104 @@ public sealed class WindowsGameLoopEnvironment : IGameLoopEnvironment
         _override = overrides;
     }
 
-    public IReadOnlyList<UninstallHint> ReadUninstallHints()
+    public IReadOnlyList<UninstallHint> ReadUninstallHints() => ReadUninstall().Hints;
+
+    public UninstallRead ReadUninstall()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return new UninstallRead([], []);
+        }
+
+        return ReadUninstallOnWindows();
+    }
+
+    public IReadOnlyList<ProductRegistration> ReadProductRegistrations()
     {
         if (!OperatingSystem.IsWindows())
         {
             return [];
         }
 
-        return ReadUninstallHintsOnWindows();
+        return ReadProductRegistrationsOnWindows();
+    }
+
+    public IReadOnlyList<string> MarketDirectories()
+    {
+        var roots = new List<string>();
+        AddSpecial(roots, Environment.SpecialFolder.ApplicationData, Path.Combine("Tencent", "MobileGamePC"));
+        return roots;
     }
 
     [SupportedOSPlatform("windows")]
-    private static IReadOnlyList<UninstallHint> ReadUninstallHintsOnWindows()
+    private static IReadOnlyList<ProductRegistration> ReadProductRegistrationsOnWindows()
     {
-        var hints = new List<UninstallHint>();
+        var registrations = new List<ProductRegistration>();
         foreach (var hive in new[] { Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryHive.CurrentUser })
         {
             foreach (var view in new[] { Microsoft.Win32.RegistryView.Registry64, Microsoft.Win32.RegistryView.Registry32 })
             {
-                try
-                {
-                    using var baseKey = Microsoft.Win32.RegistryKey.OpenBaseKey(hive, view);
-                    ReadUninstallKey(baseKey, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", hints);
-                    ReadUninstallKey(baseKey, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", hints);
-                }
-                catch (Exception)
-                {
-                    // This hive or view is unavailable. Other locations can still match.
-                }
+                ReadProductKey(hive, view, @"SOFTWARE\Tencent\GameLoop", registrations);
+                ReadProductKey(hive, view, @"SOFTWARE\WOW6432Node\Tencent\GameLoop", registrations);
             }
         }
 
-        return hints;
+        return registrations;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void ReadProductKey(
+        Microsoft.Win32.RegistryHive hive,
+        Microsoft.Win32.RegistryView view,
+        string subKey,
+        List<ProductRegistration> registrations)
+    {
+        var location = HiveLabel(hive) + "\\" + subKey + " (" + ViewLabel(view) + ")";
+        try
+        {
+            using var baseKey = Microsoft.Win32.RegistryKey.OpenBaseKey(hive, view);
+            using var key = baseKey.OpenSubKey(subKey);
+            if (key is null)
+            {
+                registrations.Add(new ProductRegistration { Location = location, Found = false });
+                return;
+            }
+
+            registrations.Add(new ProductRegistration
+            {
+                Location = location,
+                Found = true,
+                InstallPath = ReadString(key, "InstallPath"),
+                DataPath = ReadString(key, "GameLoopData"),
+                Version = ReadString(key, "Version")
+            });
+        }
+        catch (Exception)
+        {
+            registrations.Add(new ProductRegistration
+            {
+                Location = location,
+                Found = false,
+                Detail = "could not be read"
+            });
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static UninstallRead ReadUninstallOnWindows()
+    {
+        var hints = new List<UninstallHint>();
+        var attempts = new List<RegistryAttempt>();
+        foreach (var hive in new[] { Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryHive.CurrentUser })
+        {
+            foreach (var view in new[] { Microsoft.Win32.RegistryView.Registry64, Microsoft.Win32.RegistryView.Registry32 })
+            {
+                ReadUninstallKey(hive, view, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", hints, attempts);
+                ReadUninstallKey(hive, view, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", hints, attempts);
+            }
+        }
+
+        return new UninstallRead(hints, attempts);
     }
 
     public IReadOnlyList<string> CandidateDirectories()
@@ -82,8 +149,10 @@ public sealed class WindowsGameLoopEnvironment : IGameLoopEnvironment
             // Drive enumeration is optional. Registry, processes, and known folders still run.
         }
 
+        AddSpecial(candidates, Environment.SpecialFolder.ProgramFiles, Path.Combine("Tencent", "GameLoop"));
         AddSpecial(candidates, Environment.SpecialFolder.ProgramFiles, "TxGameAssistant");
         AddSpecial(candidates, Environment.SpecialFolder.ProgramFiles, "GameLoop");
+        AddSpecial(candidates, Environment.SpecialFolder.ProgramFilesX86, Path.Combine("Tencent", "GameLoop"));
         AddSpecial(candidates, Environment.SpecialFolder.ProgramFilesX86, "TxGameAssistant");
         AddSpecial(candidates, Environment.SpecialFolder.ProgramFilesX86, "GameLoop");
         AddSpecial(candidates, Environment.SpecialFolder.LocalApplicationData, "TxGameAssistant");
@@ -201,6 +270,12 @@ public sealed class WindowsGameLoopEnvironment : IGameLoopEnvironment
                     if (string.IsNullOrWhiteSpace(path))
                     {
                         unreadable = true;
+                        processes.Add(new ProcessObservation
+                        {
+                            ProcessId = process.Id,
+                            ProcessName = name,
+                            ExecutablePath = null
+                        });
                         continue;
                     }
 
@@ -295,44 +370,106 @@ public sealed class WindowsGameLoopEnvironment : IGameLoopEnvironment
     }
 
     [SupportedOSPlatform("windows")]
-    private static void ReadUninstallKey(Microsoft.Win32.RegistryKey baseKey, string subKey, List<UninstallHint> hints)
+    private static void ReadUninstallKey(
+        Microsoft.Win32.RegistryHive hive,
+        Microsoft.Win32.RegistryView view,
+        string subKey,
+        List<UninstallHint> hints,
+        List<RegistryAttempt> attempts)
     {
-        using var uninstall = baseKey.OpenSubKey(subKey);
-        if (uninstall is null)
+        var location = HiveLabel(hive) + "\\" + subKey + " (" + ViewLabel(view) + ")";
+        try
         {
-            return;
+            using var baseKey = Microsoft.Win32.RegistryKey.OpenBaseKey(hive, view);
+            using var uninstall = baseKey.OpenSubKey(subKey);
+            if (uninstall is null)
+            {
+                attempts.Add(new RegistryAttempt { Location = location, Found = false });
+                return;
+            }
+
+            var matches = 0;
+            foreach (var childName in uninstall.GetSubKeyNames())
+            {
+                try
+                {
+                    using var child = uninstall.OpenSubKey(childName);
+                    if (child is null)
+                    {
+                        continue;
+                    }
+
+                    var displayName = ReadString(child, "DisplayName");
+                    if (!GameLoopNames.IsProduct(displayName))
+                    {
+                        continue;
+                    }
+
+                    matches++;
+                    hints.Add(new UninstallHint
+                    {
+                        DisplayName = displayName,
+                        InstallLocation = ReadString(child, "InstallLocation"),
+                        DisplayIcon = ReadString(child, "DisplayIcon"),
+                        UninstallString = ReadString(child, "UninstallString"),
+                        DisplayVersion = ReadString(child, "DisplayVersion"),
+                        Source = HiveLabel(hive) + "\\" + subKey + "\\" + childName + " (" + ViewLabel(view) + ")"
+                    });
+                }
+                catch (Exception)
+                {
+                    // Skip an unreadable uninstall entry.
+                }
+            }
+
+            attempts.Add(new RegistryAttempt
+            {
+                Location = location,
+                Found = true,
+                Detail = matches == 0 ? "opened, no GameLoop entry" : matches.ToString(CultureInfo.InvariantCulture) + " GameLoop entry"
+            });
         }
-
-        foreach (var childName in uninstall.GetSubKeyNames())
+        catch (Exception)
         {
-            try
+            attempts.Add(new RegistryAttempt
             {
-                using var child = uninstall.OpenSubKey(childName);
-                if (child is null)
-                {
-                    continue;
-                }
-
-                var displayName = child.GetValue("DisplayName") as string;
-                if (!GameLoopNames.IsProduct(displayName))
-                {
-                    continue;
-                }
-
-                hints.Add(new UninstallHint
-                {
-                    DisplayName = displayName,
-                    InstallLocation = child.GetValue("InstallLocation") as string,
-                    DisplayIcon = child.GetValue("DisplayIcon") as string,
-                    DisplayVersion = child.GetValue("DisplayVersion") as string
-                });
-            }
-            catch (Exception)
-            {
-                // Skip an unreadable uninstall entry.
-            }
+                Location = location,
+                Found = false,
+                Detail = "could not be read"
+            });
         }
     }
+
+    [SupportedOSPlatform("windows")]
+    private static string? ReadString(Microsoft.Win32.RegistryKey key, string name)
+    {
+        try
+        {
+            var value = key.GetValue(name);
+            if (value is null)
+            {
+                return null;
+            }
+
+            if (value is string text)
+            {
+                return string.IsNullOrWhiteSpace(text) ? null : text;
+            }
+
+            var converted = Convert.ToString(value, CultureInfo.InvariantCulture);
+            return string.IsNullOrWhiteSpace(converted) ? null : converted;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static string HiveLabel(Microsoft.Win32.RegistryHive hive) =>
+        hive == Microsoft.Win32.RegistryHive.CurrentUser ? "HKCU" : "HKLM";
+
+    private static string ViewLabel(Microsoft.Win32.RegistryView view) =>
+        view == Microsoft.Win32.RegistryView.Registry64 ? "64-bit" : "32-bit";
 
     private static void AddSpecial(List<string> target, Environment.SpecialFolder folder, string child)
     {

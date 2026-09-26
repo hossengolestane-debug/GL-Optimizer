@@ -92,6 +92,69 @@ public class GameLoopConfigTests
     }
 
     [Fact]
+    public void Conf_parses_like_ini_and_names_unrecognized_keys()
+    {
+        const string conf = """
+            Renderer=OpenGL
+            CustomFlag=1
+            """;
+
+        Assert.True(GameLoopSettingsParser.TryReadPairs(conf, ".conf", out var pairs));
+        var settings = GameLoopSettingsParser.Parse(pairs);
+
+        Assert.Equal("OpenGL", settings.Renderer);
+        Assert.Contains("CustomFlag", GameLoopSettingsParser.UnrecognizedNames(pairs));
+    }
+
+    [Fact]
+    public async Task Data_root_and_supplemental_registry_stay_read_only()
+    {
+        var parent = Path.Combine(Path.GetTempPath(), "glopt-data-" + Guid.NewGuid().ToString("N"));
+        var install = Path.GetFullPath(Path.Combine(parent, "GameLoop"));
+        var data = Path.GetFullPath(Path.Combine(parent, "GameLoopData"));
+        var config = Path.GetFullPath(Path.Combine(data, "Component", "GameLoop", "Config.json"));
+        var reader = new ScriptedReader();
+        reader.Files[config] = new ConfigProbe
+        {
+            Exists = true,
+            Text = "{\"VMDPI\":240,\"CustomSetting\":1}",
+            SizeBytes = 32
+        };
+        reader.Supplemental.Add(new SupplementalRegistry
+        {
+            Path = @"HKCU\Software\Tencent\Call-of-Duty-Mobile-PCLauncher",
+            Found = true,
+            ValueNames = ["UserSettingLevel_KEY_NEW_h1794756831"]
+        });
+        reader.Supplemental.Add(new SupplementalRegistry
+        {
+            Path = @"HKLM\SOFTWARE\Tencent\GameLoop",
+            Found = true,
+            ValueNames = ["HyperVState", "VtState"]
+        });
+
+        var result = await new GameLoopConfigDiscovery(reader).DiscoverAsync([install, data]);
+
+        Assert.True(result.Succeeded);
+        var report = Assert.Single(result.Value!.Installs);
+        Assert.Equal(install, report.InstallPath);
+        Assert.Equal("240", report.Settings.Dpi);
+        Assert.Null(report.Settings.Resolution);
+        Assert.Null(result.Value.Notice);
+        Assert.Contains(report.Files, file => file.Path == config && file.Detail != null && file.Detail.Contains("CustomSetting", StringComparison.Ordinal));
+        Assert.Contains(report.Files, file =>
+            file.Path.Contains("Call-of-Duty-Mobile-PCLauncher", StringComparison.Ordinal)
+            && file.Presence == ConfigPresence.Present
+            && file.Detail != null
+            && file.Detail.Contains("UserSettingLevel_KEY_NEW_h1794756831", StringComparison.Ordinal)
+            && file.Detail.Contains("read-only", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(report.Files, file =>
+            file.Path.StartsWith("HKLM", StringComparison.Ordinal)
+            && file.Detail != null
+            && file.Detail.Contains("not written", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void Invalid_documents_are_rejected()
     {
         Assert.True(GameLoopSettingsParser.TryReadPairs("   ", ".ini", out var empty));
@@ -261,6 +324,10 @@ public class GameLoopConfigTests
         public RegistryProbe Registry { get; set; } = new();
 
         public List<string> UserFiles { get; } = [];
+
+        public List<SupplementalRegistry> Supplemental { get; } = [];
+
+        public IReadOnlyList<SupplementalRegistry> ReadSupplementalRegistries() => Supplemental;
 
         public bool ThrowOnUse { get; init; }
 

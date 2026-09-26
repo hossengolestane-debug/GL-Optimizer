@@ -93,6 +93,8 @@ public class MarketAndCodDiagnosticsTests
         var unknown = AppMarketClassifier.Classify("AppMarket/notes.txt", isDirectory: false);
         var ignored = AppMarketClassifier.Classify("readme.txt", isDirectory: false);
         var cacheFile = AppMarketClassifier.Classify("AppMarket/cache/blob.dat", isDirectory: false);
+        var market3 = AppMarketClassifier.Classify("AppMarket3/apklocalpkgs.json", isDirectory: false);
+        var market3Cache = AppMarketClassifier.Classify("AppMarket3/cache", isDirectory: true);
 
         Assert.NotNull(executable);
         Assert.Equal(MarketItemKind.Package, executable.Kind);
@@ -114,6 +116,10 @@ public class MarketAndCodDiagnosticsTests
         Assert.Equal(MarketConfidence.Low, unknown.Confidence);
         Assert.Null(ignored);
         Assert.Null(cacheFile);
+        Assert.NotNull(market3);
+        Assert.Equal(MarketItemKind.Metadata, market3.Kind);
+        Assert.NotNull(market3Cache);
+        Assert.Equal(MarketItemKind.Cache, market3Cache.Kind);
         foreach (var item in new[] { executable, package, version, cache, metadata, unknown })
         {
             Assert.Contains("assumption", item.Reason, StringComparison.OrdinalIgnoreCase);

@@ -20,7 +20,9 @@ Unreadable `settings.json`, `repair-checkpoint.json`, `launch-optimized.json`, `
 
 ## Missing GameLoop and unknown versions
 
-Dashboard status is "GameLoop was not found." or a count of installs. Version and hardware fields stay Unknown when they were not read. Pages do not invent an official version. Multiple installs stay listed. This was not exercised against a real GameLoop install.
+Dashboard status is "GameLoop was not found." or a count of installs. Version and hardware fields stay Unknown when they were not read. Pages do not invent an official version. Multiple installs stay listed.
+
+GameLoop 7.x is detected from `HKLM\SOFTWARE\Tencent\GameLoop` (`InstallPath`, `GameLoopData`, `Version`) in the 64-bit and 32-bit views, and from the uninstall entry when `InstallLocation` is empty. The install directory is derived from `DisplayIcon` or the quoted `UninstallString`. Publisher is not required. `GameLoop`, `GameLoopAssistant`, `GameLoopDldSvr`, `GameLoopEmulator`, `GameLoopService`, and `GameLoopVm` count as running by name when the path is unavailable. The scan log lists every key, path, and process name that was checked. App Market also looks at `%AppData%\Tencent\MobileGamePC`. PUBG package folders under `%AppData%\Tencent\GameLoop\apps` are included. New registry values are shown read-only and are not written.
 
 ## Idle CPU
 

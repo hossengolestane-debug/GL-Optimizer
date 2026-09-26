@@ -82,7 +82,7 @@ public sealed class InstallItem
             .Select(process => new ProcessRow(
                 process.ProcessId.ToString(CultureInfo.InvariantCulture),
                 process.ProcessName,
-                process.ExecutablePath))
+                string.IsNullOrWhiteSpace(process.ExecutablePath) ? "path unavailable" : process.ExecutablePath))
             .ToArray();
         return new InstallItem(
             installation,

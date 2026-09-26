@@ -39,7 +39,7 @@ public sealed class AppMarketVersionService
             }
 
             var relative = item.RelativePath.Replace('\\', '/');
-            if (!HasSegment(relative, "AppMarket") || IsPackageVersionFile(relative, packageIds))
+            if ((!HasSegment(relative, "AppMarket") && !HasSegment(relative, "AppMarket3")) || IsPackageVersionFile(relative, packageIds))
             {
                 continue;
             }

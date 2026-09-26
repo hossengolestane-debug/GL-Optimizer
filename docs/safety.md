@@ -15,7 +15,7 @@ These are out of scope for every phase:
 Phase 1 adds read-only detection:
 
 - Hardware queries use WMI and the Windows version registry key. A failed query leaves that field empty.
-- GameLoop detection reads uninstall metadata, looks for known launcher file names, reads small version files, and reads process executable paths. It does not write those files.
+- GameLoop detection reads uninstall metadata, the `HKLM` and `HKCU` `SOFTWARE\Tencent\GameLoop` keys in both registry views, known launcher file names, small version files, and process names. A process path that cannot be read does not drop that process. It does not write those files or those keys. `HKLM` is never written. The only registry write remains the HKCU Run value `GL Optimizer`.
 - PUBG Mobile and COD Mobile are reported only from package folders found under a verified GameLoop install or, once an install exists, under the local Tencent and Documents data folders. An unfinished search is Unknown, not Not found.
 - **Start** calls `Process.Start` on a launcher path that `InstallPathRules` has placed inside the verified install root. It does not start `aow_exe.exe`.
 - **Close** and **Restart** return not implemented. This phase does not call `Process.Kill` or any other force-close.

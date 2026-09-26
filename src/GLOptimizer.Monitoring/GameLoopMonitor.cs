@@ -90,7 +90,7 @@ public sealed class GameLoopMonitor : IGameLoopMonitor
         var matched = new List<ProbedProcess>();
         foreach (var process in probed.Processes)
         {
-            if (IsInsideInstall(process.ExecutablePath))
+            if (Matches(process))
             {
                 matched.Add(process);
             }
@@ -137,6 +137,16 @@ public sealed class GameLoopMonitor : IGameLoopMonitor
             CpuPercent = cpuSamples == 0 ? null : MetricSanity.Percent(cpuSum),
             RamBytes = ramSamples == 0 ? null : ram
         };
+    }
+
+    private bool Matches(ProbedProcess process)
+    {
+        if (IsInsideInstall(process.ExecutablePath))
+        {
+            return true;
+        }
+
+        return string.IsNullOrWhiteSpace(process.ExecutablePath) && GameLoopNames.IsProcess(process.ProcessName);
     }
 
     private bool IsInsideInstall(string? path)

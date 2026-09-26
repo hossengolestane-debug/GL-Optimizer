@@ -157,6 +157,30 @@ public class MonitoringLogicTests
     }
 
     [Fact]
+    public async Task Pathless_GameLoop_process_counts_as_running()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "glopt-mon-" + Guid.NewGuid().ToString("N"));
+        var monitor = new GameLoopMonitor(new FixedDetector(root), new ScriptedProbe
+        {
+            Result = new ProcessProbeResult
+            {
+                Available = true,
+                HadUnreadableMatch = true,
+                Processes =
+                [
+                    new ProbedProcess { ProcessId = 9, ProcessName = "GameLoopEmulator", WorkingSetBytes = 2048 }
+                ]
+            }
+        });
+
+        await monitor.WarmAsync(CancellationToken.None);
+        var reading = monitor.Read(DateTimeOffset.Parse("2026-01-01T00:00:00Z"));
+
+        Assert.Equal(GameRunStatus.Running, reading.State);
+        Assert.Equal(2048, reading.RamBytes);
+    }
+
+    [Fact]
     public async Task Unreadable_processes_stay_unknown()
     {
         var root = Path.Combine(Path.GetTempPath(), "glopt-mon-" + Guid.NewGuid().ToString("N"));

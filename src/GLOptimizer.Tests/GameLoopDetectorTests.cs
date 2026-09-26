@@ -1,6 +1,8 @@
 using GLOptimizer.Core.Detection;
+using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Models;
 using GLOptimizer.Core.Results;
+using GLOptimizer.Core.Settings;
 using GLOptimizer.GameLoop;
 
 namespace GLOptimizer.Tests;
@@ -185,6 +187,121 @@ public class GameLoopDetectorTests
     }
 
     [Fact]
+    public void Uninstall_string_keeps_the_quoted_path_and_drops_arguments()
+    {
+        var file = Path.Combine(Path.GetTempPath(), "Uninstall.exe");
+        var command = "\"" + file + "\" --oem-uninstall=0 --uninstall-entry=2";
+
+        Assert.Equal(Path.GetFullPath(file), InstallPathRules.TryNormalizeCommand(command));
+    }
+
+    [Fact]
+    public async Task Real_7x_layout_is_found_without_a_process_path()
+    {
+        var parent = Path.Combine(Path.GetTempPath(), "glopt-7x-" + Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(parent, "GameLoop");
+        var application = Path.Combine(root, "Application");
+        var data = Path.Combine(parent, "GameLoopData");
+        var tencent = Path.Combine(parent, "Tencent");
+        var market = Path.Combine(parent, "MobileGamePC");
+        var pubg = Path.Combine(tencent, "GameLoop", "apps", "com.tencent.ig");
+        Directory.CreateDirectory(application);
+        Directory.CreateDirectory(Path.Combine(data, "Component", "GameLoop"));
+        Directory.CreateDirectory(pubg);
+        Directory.CreateDirectory(Path.Combine(market, "AppMarket3"));
+        var launcher = Path.Combine(application, "GameLoopLauncher.exe");
+        var uninstall = Path.Combine(application, "Uninstall.exe");
+        File.WriteAllText(launcher, "launcher");
+        File.WriteAllText(uninstall, "uninstall");
+        File.WriteAllText(Path.Combine(pubg, "version.txt"), "versionName=3.4.0\n");
+        File.WriteAllText(Path.Combine(market, "AppMarket3", "apklocalpkgs.json"), "{}");
+        try
+        {
+            var environment = new FixtureEnvironment
+            {
+                Hints =
+                {
+                    new UninstallHint
+                    {
+                        DisplayName = "GameLoop",
+                        InstallLocation = string.Empty,
+                        DisplayIcon = uninstall,
+                        UninstallString = "\"" + uninstall + "\" --oem-uninstall=0 --uninstall-entry=2",
+                        DisplayVersion = "7.0.19.05",
+                        Source = @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\GameLoop (64-bit)"
+                    }
+                },
+                Processes = new ProcessQueryResult
+                {
+                    Available = true,
+                    HadUnreadableMatch = true,
+                    Processes =
+                    [
+                        new ProcessObservation { ProcessId = 11, ProcessName = "GameLoop" },
+                        new ProcessObservation { ProcessId = 12, ProcessName = "GameLoopAssistant" },
+                        new ProcessObservation { ProcessId = 13, ProcessName = "GameLoopDldSvr" },
+                        new ProcessObservation { ProcessId = 14, ProcessName = "GameLoopEmulator" },
+                        new ProcessObservation { ProcessId = 15, ProcessName = "GameLoopService" },
+                        new ProcessObservation { ProcessId = 16, ProcessName = "GameLoopVm" }
+                    ]
+                }
+            };
+            environment.Registrations.Add(new ProductRegistration
+            {
+                Location = @"HKLM\SOFTWARE\Tencent\GameLoop (64-bit)",
+                Found = true,
+                InstallPath = root,
+                DataPath = data,
+                Version = "7.0.19.05"
+            });
+            environment.Registrations.Add(new ProductRegistration
+            {
+                Location = @"HKLM\SOFTWARE\WOW6432Node\Tencent\GameLoop (64-bit)",
+                Found = false
+            });
+            environment.DataRoots.Add(tencent);
+            environment.Markets.Add(market);
+            environment.FileVersions[Path.GetFullPath(launcher)] = "7.0.167.0";
+            var log = new ListLog();
+
+            var result = await new GameLoopDetector(environment).DetectAsync();
+            ScanCheckLog.Write(log, result.Value);
+
+            Assert.Equal(OperationStatus.Success, result.Status);
+            var scan = result.Value!;
+            var install = Assert.Single(scan.Installations);
+            Assert.Equal(Path.GetFullPath(root), install.InstallPath);
+            Assert.Equal("7.0.19.05", install.Version);
+            Assert.Equal(GameRunStatus.Running, install.RunStatus);
+            Assert.Equal(Path.GetFullPath(launcher), install.LauncherPath);
+            Assert.Equal(Path.GetFullPath(data), install.DataPath);
+            Assert.Equal(6, install.Processes.Count);
+            Assert.All(install.Processes, process => Assert.Equal(string.Empty, process.ExecutablePath));
+            Assert.Equal(GamePresenceStatus.Installed, scan.PubgMobile.Status);
+            Assert.Equal("3.4.0", scan.PubgMobile.Version);
+            Assert.Equal("com.tencent.ig", scan.PubgMobile.PackageId);
+            Assert.Equal(GamePresenceStatus.NotFound, scan.CodMobile.Status);
+            Assert.Contains(Path.GetFullPath(market), scan.MarketRoots);
+            Assert.Contains(scan.Checks, check => check.Kind == "Registry" && check.Found && check.Target.Contains(@"SOFTWARE\Tencent\GameLoop", StringComparison.Ordinal));
+            Assert.Contains(scan.Checks, check => check.Kind == "Registry" && !check.Found && check.Target.Contains("WOW6432Node", StringComparison.Ordinal));
+            Assert.Contains(scan.Checks, check => check.Kind == "Registry" && check.Found && check.Target.Contains("Uninstall\\GameLoop", StringComparison.Ordinal));
+            Assert.Contains(scan.Checks, check => check.Kind == "Process" && check.Target == "GameLoopAssistant" && check.Found && check.Detail == "path unavailable");
+            Assert.Contains(scan.Checks, check => check.Kind == "Process" && check.Target == "aow_exe" && !check.Found);
+            Assert.Contains(scan.Checks, check => check.Kind == "Path" && check.Found && check.Detail == "GameLoopData");
+            Assert.Contains(log.Messages, message => message.Contains(@"SOFTWARE\Tencent\GameLoop", StringComparison.Ordinal) && message.Contains("found", StringComparison.Ordinal));
+            Assert.Contains(log.Messages, message => message.Contains("aow_exe", StringComparison.Ordinal) && message.Contains("not found", StringComparison.Ordinal));
+            Assert.False(scan.BrokenRegistration);
+        }
+        finally
+        {
+            if (Directory.Exists(parent))
+            {
+                Directory.Delete(parent, true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Shortcut_under_the_install_resolves_the_parent()
     {
         using var tree = new TempInstall();
@@ -260,11 +377,21 @@ public class GameLoopDetectorTests
 
         public List<string> DataRoots { get; } = [];
 
+        public List<ProductRegistration> Registrations { get; } = [];
+
+        public List<string> Markets { get; } = [];
+
+        public Dictionary<string, string> FileVersions { get; } = new(StringComparer.OrdinalIgnoreCase);
+
         public ProcessQueryResult Processes { get; set; } = new() { Available = true };
 
         public DirectorySearchResult? ForcedSearch { get; set; }
 
         public IReadOnlyList<UninstallHint> ReadUninstallHints() => Hints;
+
+        public IReadOnlyList<ProductRegistration> ReadProductRegistrations() => Registrations;
+
+        public IReadOnlyList<string> MarketDirectories() => Markets;
 
         public IReadOnlyList<string> CandidateDirectories() => Candidates;
 
@@ -327,6 +454,47 @@ public class GameLoopDetectorTests
             }
         }
 
-        public string? TryReadFileVersion(string path) => null;
+        public string? TryReadFileVersion(string path)
+        {
+            try
+            {
+                var full = Path.GetFullPath(path);
+                return FileVersions.TryGetValue(full, out var version) ? version : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+    }
+
+    private sealed class ListLog : ILogStore
+    {
+        public List<string> Messages { get; } = [];
+
+        public string LogDirectory => string.Empty;
+
+        public string ActiveLogFilePath => string.Empty;
+
+        public LogSeverity MinimumLevel => LogSeverity.Trace;
+
+        public string? LastError => null;
+
+        public void ApplyPolicy(AppSettings settings)
+        {
+        }
+
+        public void Write(LogSeverity severity, string category, string message, Exception? exception = null)
+        {
+            Messages.Add(category + " " + message);
+        }
+
+        public IReadOnlyList<LogEntry> GetRecent(int count = 200) => [];
+
+        public IReadOnlyList<LogEntry> ReadActiveLog(int maxLines = 500) => [];
+
+        public void Flush()
+        {
+        }
     }
 }

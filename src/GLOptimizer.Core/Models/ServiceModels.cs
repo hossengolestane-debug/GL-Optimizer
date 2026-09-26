@@ -61,6 +61,11 @@ public sealed class GameLoopInstallation
 
     public string? LauncherPath { get; init; }
 
+    /// <summary>
+    /// GameLoopData directory reported by the product registry. It is not an install root.
+    /// </summary>
+    public string? DataPath { get; init; }
+
     public IReadOnlyList<GameLoopProcessInfo> Processes { get; init; } = [];
 }
 
@@ -81,6 +86,32 @@ public sealed class GameLoopScan
     public bool BrokenRegistration { get; init; }
 
     public IReadOnlyList<string> Warnings { get; init; } = [];
+
+    /// <summary>
+    /// Every registry key, path, and process name the scan tried, including misses.
+    /// </summary>
+    public IReadOnlyList<ScanCheck> Checks { get; init; } = [];
+
+    /// <summary>
+    /// Existing GameLoopData directories. Package search does not walk these trees.
+    /// </summary>
+    public IReadOnlyList<string> DataRoots { get; init; } = [];
+
+    /// <summary>
+    /// Parent folders that contain App Market data, such as MobileGamePC.
+    /// </summary>
+    public IReadOnlyList<string> MarketRoots { get; init; } = [];
+}
+
+public sealed class ScanCheck
+{
+    public required string Kind { get; init; }
+
+    public required string Target { get; init; }
+
+    public bool Found { get; init; }
+
+    public string? Detail { get; init; }
 }
 
 public sealed class GameLoopProcessInfo

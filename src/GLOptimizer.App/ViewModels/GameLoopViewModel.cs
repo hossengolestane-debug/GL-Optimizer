@@ -5,12 +5,15 @@ using CommunityToolkit.Mvvm.Input;
 using GLOptimizer.App.Services;
 using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Configuration;
+using GLOptimizer.Core.Detection;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Elevation;
+using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Models;
 using GLOptimizer.Core.Navigation;
 using GLOptimizer.Core.Notifications;
 using GLOptimizer.Core.Repair;
+using GLOptimizer.GameLoop;
 
 namespace GLOptimizer.App.ViewModels;
 
@@ -23,6 +26,7 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
     private readonly ILaunchOptimized _launch;
     private readonly IElevationRelaunch _elevation;
     private readonly IToastCenter _toasts;
+    private readonly ILogStore _log;
     private readonly ScanSession _session = new();
     private GameLoopConfigReport? _report;
 
@@ -33,7 +37,8 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
         IUserConfirmation confirm,
         ILaunchOptimized launch,
         IElevationRelaunch elevation,
-        IToastCenter toasts)
+        IToastCenter toasts,
+        ILogStore log)
         : base(AppPage.GameLoop)
     {
         _detector = detector;
@@ -43,6 +48,7 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
         _launch = launch;
         _elevation = elevation;
         _toasts = toasts;
+        _log = log;
         ConfigRows.FillSettings(ConfigSettings, null);
     }
 
@@ -265,16 +271,13 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
                 StatusLine = result.Value.Installations.Count == 0
                     ? "GameLoop was not found."
                     : result.Value.Installations.Count.ToString(CultureInfo.InvariantCulture) + " GameLoop installation(s) found.";
+                ScanCheckLog.Write(_log, result.Value);
                 if (result.Value.BrokenRegistration)
                 {
                     StatusLine += " An uninstall entry points at a missing path.";
                 }
 
-                var paths = result.Value.Installations
-                    .Select(installation => installation.InstallPath)
-                    .Where(path => !string.IsNullOrWhiteSpace(path))
-                    .Cast<string>()
-                    .ToArray();
+                var paths = GameLoopLocations.InstallAndData(result.Value);
                 var config = await _config.DiscoverAsync(paths, token);
                 if (!_session.IsCurrent(generation))
                 {

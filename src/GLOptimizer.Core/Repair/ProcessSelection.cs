@@ -16,20 +16,7 @@ public static class ProcessSelection
     public const string SessionWarning =
         "A COD Mobile or PUBG Mobile session appears active. Stopping GameLoop can close that session.";
 
-    public static bool IsGameLoopFamily(string? name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return false;
-        }
-
-        return name.Equals("GameLoop", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("AppMarket", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("TxGameAssistant", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("AndroidEmulator", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("AndroidEmulatorEn", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("aow_exe", StringComparison.OrdinalIgnoreCase);
-    }
+    public static bool IsGameLoopFamily(string? name) => GameLoopNames.IsProcess(name);
 
     public static IReadOnlyList<ControlledProcess> SelectStopTargets(
         IReadOnlyList<ControlledProcess> processes,

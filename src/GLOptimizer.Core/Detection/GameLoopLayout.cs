@@ -7,6 +7,8 @@ public static class GameLoopLayout
 {
     public static IReadOnlyList<string> RelativeRoots { get; } =
     [
+        Path.Combine("Program Files", "Tencent", "GameLoop"),
+        Path.Combine("Program Files (x86)", "Tencent", "GameLoop"),
         Path.Combine("Program Files", "TxGameAssistant"),
         Path.Combine("Program Files", "GameLoop"),
         Path.Combine("Program Files (x86)", "TxGameAssistant"),
@@ -17,6 +19,9 @@ public static class GameLoopLayout
 
     public static IReadOnlyList<string[]> LauncherSegments { get; } =
     [
+        ["Application", "GameLoopLauncher.exe"],
+        ["GameLoopLauncher.exe"],
+        ["Application", "GameLoop.exe"],
         ["GameLoop.exe"],
         ["AppMarket.exe"],
         ["TxGameAssistant.exe"],
@@ -24,6 +29,15 @@ public static class GameLoopLayout
         ["UI", "AndroidEmulator.exe"],
         ["AndroidEmulatorEn.exe"],
         ["ui", "AndroidEmulatorEn.exe"]
+    ];
+
+    /// <summary>
+    /// Proves an install when the launcher executable cannot be listed. Not a start target.
+    /// </summary>
+    public static IReadOnlyList<string[]> MarkerSegments { get; } =
+    [
+        ["Application", "Uninstall.exe"],
+        ["Uninstall.exe"]
     ];
 
     public static IReadOnlyList<string[]> EngineSegments { get; } =
@@ -41,7 +55,8 @@ public static class GameLoopLayout
         ["Android", "data"],
         ["AOW", "data", "data"],
         ["data", "data"],
-        ["Engine", "data", "data"]
+        ["Engine", "data", "data"],
+        ["GameLoop", "apps"]
     ];
 
     public static IReadOnlyList<string> VersionFileNames { get; } =

@@ -24,21 +24,21 @@ public static class GameLoopSettingsParser
         }
 
         var format = extension.Trim().TrimStart('.').ToLowerInvariant();
-        if (format is not ("ini" or "cfg" or "txt" or "json" or "xml"))
+        if (format is not ("ini" or "cfg" or "txt" or "conf" or "json" or "xml"))
         {
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            return format is "ini" or "cfg" or "txt";
+            return format is "ini" or "cfg" or "txt" or "conf";
         }
 
         try
         {
             IReadOnlyList<ConfigPair> read = format switch
             {
-                "ini" or "cfg" or "txt" => ReadIni(text),
+                "ini" or "cfg" or "txt" or "conf" => ReadIni(text),
                 "json" => ReadJson(text),
                 "xml" => ReadXml(text),
                 _ => []
@@ -49,7 +49,7 @@ public static class GameLoopSettingsParser
             }
 
             pairs = read;
-            return format is "ini" or "cfg" or "txt" or "json" or "xml";
+            return format is "ini" or "cfg" or "txt" or "conf" or "json" or "xml";
         }
         catch (Exception ex) when (ex is JsonException or XmlException or InvalidOperationException)
         {
@@ -145,6 +145,60 @@ public static class GameLoopSettingsParser
         }
 
         return true;
+    }
+
+    public static bool IsKnownSettingKey(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        return IsFpsKey(name)
+            || IsUnmappedRendererKey(name)
+            || name.Equals("VMDPI", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("DPI", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VMCpuCount", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CpuAllocation", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VMResWidth", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VMResHeight", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VMMemorySizeInMB", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("MemoryAllocation", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VSyncEnabled", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("VSync", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("FxaaQuality", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("AntiAliasing", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("Resolution", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("Renderer", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("RendererMode", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ScreenRenderingMode", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static IReadOnlyList<string> UnrecognizedNames(IReadOnlyList<ConfigPair> pairs)
+    {
+        ArgumentNullException.ThrowIfNull(pairs);
+        var names = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in pairs)
+        {
+            if (string.IsNullOrWhiteSpace(pair.Key) || pair.Key.Length > 80 || IsKnownSettingKey(pair.Key))
+            {
+                continue;
+            }
+
+            if (!seen.Add(pair.Key))
+            {
+                continue;
+            }
+
+            names.Add(pair.Key);
+            if (names.Count == 24)
+            {
+                break;
+            }
+        }
+
+        return names;
     }
 
     public static bool IsUnmappedRendererKey(string? name) =>

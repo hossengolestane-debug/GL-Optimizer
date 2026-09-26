@@ -122,6 +122,30 @@ public sealed class AppMarketDiagnostics : IAppMarketDiagnostics
             }
         }
 
+        foreach (var extra in scan.MarketRoots)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var root = InstallPathRules.TryNormalize(extra);
+            if (root is null || paths.Any(existing => InstallPathRules.IsUnderRoot(root, existing)))
+            {
+                continue;
+            }
+
+            paths.Add(root);
+            var walked = _inventory.Scan(root, AppMarketDetector.DefaultMaxDepth, AppMarketDetector.DefaultMaxEntries, cancellationToken);
+            if (walked.Truncated || !walked.Completed)
+            {
+                truncated = true;
+            }
+
+            items.AddRange(walked.Items);
+            var market = _versions.ReadMarketVersion(root, walked.Items, cancellationToken);
+            if (market is not null)
+            {
+                marketVersions.Add(market);
+            }
+        }
+
         var installed = ReadInstalled(scan, items);
         var marketVersion = marketVersions.Count == 1 ? marketVersions.First() : null;
         var officialVersion = PackageVersion.Parse(official?.Version)?.Text;

@@ -121,11 +121,7 @@ public sealed class PubgMobileDiagnostics : IPubgMobileDiagnostics
             }
 
             var presence = scan.Value.PubgMobile;
-            var roots = scan.Value.Installations
-                .Select(install => install.InstallPath)
-                .Where(path => !string.IsNullOrWhiteSpace(path))
-                .Cast<string>()
-                .ToArray();
+            var roots = GameLoopLocations.InstallAndData(scan.Value);
             var installed = _versionsFiles.ReadInstalledVersion(presence.Path);
             string? marketVersion = null;
             var market = await _market.ScanAsync(checkOfficialVersion: false, cancellationToken).ConfigureAwait(false);
