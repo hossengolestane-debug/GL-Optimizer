@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using GLOptimizer.Core.Abstractions;
+using GLOptimizer.Core.Configuration;
 using GLOptimizer.Core.Detection;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Models;
@@ -16,6 +17,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
     private readonly IHardwareService _hardware;
     private readonly IFrameMetricsProvider _frames;
     private readonly IGameLoopDetector _gameLoop;
+    private readonly IGameLoopConfigDiscovery _config;
     private readonly IAppMarketDiagnostics _market;
     private readonly IOptimizationService _optimization;
     private readonly IBackupService _backups;
@@ -26,6 +28,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
         IHardwareService hardware,
         IFrameMetricsProvider frames,
         IGameLoopDetector gameLoop,
+        IGameLoopConfigDiscovery config,
         IAppMarketDiagnostics market,
         IOptimizationService optimization,
         IBackupService backups)
@@ -35,6 +38,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
         _hardware = hardware;
         _frames = frames;
         _gameLoop = gameLoop;
+        _config = config;
         _market = market;
         _optimization = optimization;
         _backups = backups;
@@ -71,6 +75,11 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
 
             AddHardware(hardwareTask.Result);
             AddScan(gameTask.Result);
+            await AddConfigAsync(gameTask.Result, token);
+            if (!_session.IsCurrent(generation))
+            {
+                return;
+            }
             var frames = _frames.TryGetLatest();
             if (frames.Succeeded && frames.Value?.FramesPerSecond is double fps && !double.IsNaN(fps) && !double.IsInfinity(fps) && fps >= 0)
             {
@@ -129,6 +138,88 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
         var cod = DetectionText.ForMobile(scan.CodMobile, false);
         Rows.Add(new DiagnosticRowModel("PUBG Mobile", scan.PubgMobile.Detail ?? pubg.Badge, pubg.Badge, pubg.Kind));
         Rows.Add(new DiagnosticRowModel("COD Mobile", scan.CodMobile.Detail ?? cod.Badge, cod.Badge, cod.Kind));
+    }
+
+    private async Task AddConfigAsync(OperationResult<GameLoopScan> result, CancellationToken token)
+    {
+        if (!result.Succeeded || result.Value is null)
+        {
+            Rows.Add(new DiagnosticRowModel("Configuration", "Configuration was not searched.", "Unknown", StatusKind.Unavailable));
+            return;
+        }
+
+        var paths = result.Value.Installations
+            .Select(installation => installation.InstallPath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Cast<string>()
+            .ToArray();
+        var config = await _config.DiscoverAsync(paths, token);
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!config.Succeeded || config.Value is null)
+        {
+            Rows.Add(new DiagnosticRowModel("Configuration", config.Error ?? "Configuration could not be read.", "Needs attention", StatusKind.Attention));
+            return;
+        }
+
+        var report = config.Value;
+        if (report.Installs.Count == 0)
+        {
+            Rows.Add(new DiagnosticRowModel(
+                "Configuration",
+                report.Notice ?? "GameLoop was not found, so configuration was not searched.",
+                "Unknown",
+                StatusKind.Unavailable));
+            return;
+        }
+
+        var settings = new List<DiagnosticRowModel>();
+        ConfigRows.FillSettings(settings, report.Installs[0].Settings);
+        foreach (var row in settings)
+        {
+            Rows.Add(row);
+        }
+
+        if (report.SharedFiles.Count > 0)
+        {
+            Rows.Add(new DiagnosticRowModel(
+                "User configuration",
+                report.Notice ?? "User configuration is listed separately because more than one install was found.",
+                report.SharedSettings is null ? "Unknown" : "Reported",
+                report.SharedSettings is null ? StatusKind.Unavailable : StatusKind.Ready));
+        }
+
+        var present = 0;
+        var unreadable = 0;
+        var missing = 0;
+        foreach (var file in report.Installs.SelectMany(install => install.Files).Concat(report.SharedFiles))
+        {
+            switch (file.Presence)
+            {
+                case ConfigPresence.Present:
+                    present++;
+                    Rows.Add(ConfigRows.File(file));
+                    break;
+                case ConfigPresence.Unreadable:
+                    unreadable++;
+                    Rows.Add(ConfigRows.File(file));
+                    break;
+                default:
+                    missing++;
+                    break;
+            }
+        }
+
+        Rows.Add(new DiagnosticRowModel(
+            "Config locations",
+            present.ToString(System.Globalization.CultureInfo.InvariantCulture) + " found, "
+                + unreadable.ToString(System.Globalization.CultureInfo.InvariantCulture) + " unreadable, "
+                + missing.ToString(System.Globalization.CultureInfo.InvariantCulture) + " not found.",
+            present > 0 ? "Reported" : "Unknown",
+            present > 0 ? StatusKind.Ready : StatusKind.Unavailable));
     }
 
     private void Add<T>(string title, OperationResult<T> result)

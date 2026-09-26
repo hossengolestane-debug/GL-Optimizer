@@ -69,6 +69,50 @@
       </Border>
 
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+        <StackPanel>
+          <TextBlock Text="Configuration" Style="{StaticResource Text.Section}" />
+          <TextBlock Text="{Binding ConfigNotice}" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding ConfigSettings}" Margin="0,8,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <controls:DiagnosticRow Title="{Binding Title}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" Kind="{Binding BadgeKind}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="No configuration locations were checked." Style="{StaticResource Text.Subtitle}" Margin="0,12,0,0"
+                     Visibility="{Binding HasConfigFiles, Converter={StaticResource InverseBoolToVis}}" />
+          <ItemsControl ItemsSource="{Binding ConfigFiles}" Margin="0,8,0,0" Visibility="{Binding HasConfigFiles, Converter={StaticResource BoolToVis}}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <controls:DiagnosticRow Title="{Binding Title}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" Kind="{Binding BadgeKind}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding HasSharedConfig, Converter={StaticResource BoolToVis}}">
+        <StackPanel>
+          <TextBlock Text="User configuration" Style="{StaticResource Text.Section}" />
+          <TextBlock Text="{Binding SharedNotice}" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding SharedSettings}" Margin="0,8,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <controls:DiagnosticRow Title="{Binding Title}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" Kind="{Binding BadgeKind}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding SharedFiles}" Margin="0,8,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <controls:DiagnosticRow Title="{Binding Title}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" Kind="{Binding BadgeKind}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0">
         <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
       </Border>
     </StackPanel>

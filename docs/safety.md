@@ -22,7 +22,9 @@ Phase 1 adds read-only detection:
 
 Phase 2 adds a timer for CPU, memory, disk, GPU (when Windows exposes the counters), and GameLoop process CPU and memory. The timer runs only while the dashboard or Monitoring page is sampling. It does not inject, read game memory, or invent FPS. The frame provider still returns no sample, and the UI says FPS monitoring is unavailable with the current safe method.
 
-App Market files are still not opened. Backup and restore are still not implemented. **OPTIMIZE NOW** cannot run. GameLoop config files are still not written.
+Phase 3 reads known GameLoop config files and `HKCU\Software\Tencent\MobileGamePC` (read-only). It records path, size, and last-write time, and maps a setting only when the key and the value are both recognized. It does not write those files or registry values.
+
+App Market files are still not opened. Backup and restore are still not implemented. **OPTIMIZE NOW** cannot run.
 
 A future backup feature must copy only files the user chose, and restore only after a confirmation. It must not silently rewrite a game install.
 

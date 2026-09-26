@@ -24,6 +24,12 @@ public class Phase0StubTests
         var hardware = await provider.GetRequiredService<IHardwareService>().GetReportAsync();
         var frames = provider.GetRequiredService<IFrameMetricsProvider>().TryGetLatest();
         var gameLoop = await provider.GetRequiredService<IGameLoopDetector>().DetectAsync();
+        var installPaths = gameLoop.Value?.Installations
+            .Select(installation => installation.InstallPath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Cast<string>()
+            .ToArray() ?? [];
+        var config = await provider.GetRequiredService<IGameLoopConfigDiscovery>().DiscoverAsync(installPaths);
         var market = provider.GetRequiredService<IAppMarketDiagnostics>().Check();
         var backups = provider.GetRequiredService<IBackupService>();
         var listed = backups.List();
@@ -37,6 +43,8 @@ public class Phase0StubTests
         Assert.False(string.IsNullOrWhiteSpace(hardware.Value.Architecture));
         Assert.Equal(OperationStatus.Success, gameLoop.Status);
         Assert.NotNull(gameLoop.Value);
+        Assert.Equal(OperationStatus.Success, config.Status);
+        Assert.NotNull(config.Value);
         AssertNotImplemented(frames);
         AssertNotImplemented(market);
         AssertNotImplemented(listed);

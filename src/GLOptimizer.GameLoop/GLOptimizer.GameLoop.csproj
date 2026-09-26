@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>GLOptimizer.GameLoop</RootNamespace>
-    <Description>Read-only GameLoop detection. App Market checks remain unimplemented.</Description>
+    <Description>Read-only GameLoop detection and configuration discovery. App Market checks remain unimplemented.</Description>
   </PropertyGroup>
 
   <ItemGroup>

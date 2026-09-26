@@ -6,7 +6,7 @@ public static class Phase0Notices
         "GL Optimizer is a diagnostics and configuration utility. It does not inject into games, modify game memory, bypass anti-cheat, spoof hardware IDs, patch game binaries, or imitate GameLoop server responses.";
 
     public const string ReadOnlyGameLoop =
-        "This build reads GameLoop install metadata and process paths. It does not modify GameLoop files.";
+        "This build reads GameLoop install metadata, process paths, and configuration. It does not modify GameLoop files.";
 
     public const string NoAppMarketIo =
         "This build does not read or modify App Market files.";

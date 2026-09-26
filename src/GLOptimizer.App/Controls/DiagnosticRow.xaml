@@ -12,7 +12,7 @@
       </Grid.ColumnDefinitions>
       <StackPanel Margin="0,0,16,0">
         <TextBlock Text="{Binding Title, ElementName=Root}" FontSize="14" />
-        <TextBlock Text="{Binding Detail, ElementName=Root}" Style="{StaticResource Text.Caption}" Margin="0,4,0,0" />
+        <TextBlock Text="{Binding Detail, ElementName=Root}" Style="{StaticResource Text.Caption}" Margin="0,4,0,0" TextWrapping="Wrap" />
       </StackPanel>
       <controls:StatusBadge Grid.Column="1" VerticalAlignment="Center"
                             Text="{Binding BadgeText, ElementName=Root}"

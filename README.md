@@ -2,7 +2,7 @@
 
 GameLoop Performance & App Market Utility.
 
-Phase 2 is a diagnostics utility: a Windows desktop shell, read-only hardware and GameLoop detection, and live CPU, memory, disk, and GameLoop samples. It does not tune a game, and it does not pretend to.
+Phase 3 is a diagnostics utility: a Windows desktop shell, read-only hardware and GameLoop detection, live samples, and a read-only GameLoop configuration report. It does not tune a game, and it does not pretend to.
 
 ## What this build does
 
@@ -13,12 +13,13 @@ Phase 2 is a diagnostics utility: a Windows desktop shell, read-only hardware an
 - Shows PUBG Mobile and COD Mobile as Installed, Not found, or Unknown. Versions come only from unambiguous local version files.
 - Samples CPU, GPU (when the Windows counter exists), RAM, disk activity, and GameLoop process CPU, RAM, and state while the dashboard or Monitoring page is open. The interval is 500, 1000, or 2000 ms. Other pages do not keep the timer running.
 - Shows a 5-minute monochrome history and simple 90% spikes. FPS stays unavailable: there is no safe frame provider, and no number is invented.
+- Reports GameLoop configuration from verified installs only: known ini, json, and xml files, key maps, and the MobileGamePC registry key. Unrecognized settings stay **Unknown**. Nothing is written.
 - Sets the dashboard to GOOD, WARNING, or ACTION REQUIRED from those findings. GameLoop not found is WARNING. There is no version-mismatch badge in this phase.
 - Writes JSON settings to `%LocalAppData%\GLOptimizer\settings.json`.
 - Writes rolling logs to `%LocalAppData%\GLOptimizer\Logs\`.
 - Catches unhandled UI exceptions and shows a short message. The stack trace goes to the log.
 
-**OPTIMIZE NOW** stays disabled. **Close** and **Restart** are not implemented and do not kill a process. **Start** launches only a launcher file inside a verified install. Backup, App Market checks, and frame metrics are still not implemented. This build does not write GameLoop or App Market files.
+**OPTIMIZE NOW** stays disabled. **Close** and **Restart** are not implemented and do not kill a process. **Start** launches only a launcher file inside a verified install. Backup, App Market checks, and frame metrics are still not implemented. This build does not write GameLoop files, registry values, or App Market files.
 
 ## Safety
 
@@ -31,7 +32,7 @@ GL Optimizer must not:
 - patch game binaries
 - imitate GameLoop server responses
 
-Phase 1 reads install metadata and process paths. It does not write GameLoop configuration or App Market files. See [docs/safety.md](docs/safety.md).
+Phase 3 reads install metadata, process paths, and configuration. It does not write GameLoop configuration or App Market files. See [docs/safety.md](docs/safety.md).
 
 Developer tools (a debug log button and local path display) are compiled only into Debug builds (`#if DEBUG`).
 
@@ -73,7 +74,7 @@ src/
   GLOptimizer.App/             WPF shell, theme, pages, composition root
   GLOptimizer.Core/            models, results, paths, interfaces
   GLOptimizer.Infrastructure/  DI, JSON settings, rolling file log
-  GLOptimizer.GameLoop/        read-only GameLoop detection; App Market still unimplemented
+  GLOptimizer.GameLoop/        read-only GameLoop detection and configuration; App Market still unimplemented
   GLOptimizer.Monitoring/      hardware detection and live sampling; FPS still unavailable
   GLOptimizer.Tests/
 installer/                     not shipped yet
@@ -95,8 +96,8 @@ Default retention is 14 days. The active log rotates after 2 MB. Both can be cha
 
 ## Phases
 
-Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, or FPS numbers.
+Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). Phase 3 configuration discovery is described in [docs/phase-3.md](docs/phase-3.md). On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, FPS, or GameLoop settings.
 
-Phase 3 is read-only GameLoop configuration discovery. **OPTIMIZE NOW** stays disabled. See [docs/phase-3.md](docs/phase-3.md).
+Phase 4 is backup and restore of files the configuration report already found. **OPTIMIZE NOW** stays disabled. See [docs/phase-4.md](docs/phase-4.md).
 
 More detail is in [docs/architecture.md](docs/architecture.md).
