@@ -9,7 +9,7 @@
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="280" />
+          <ColumnDefinition Width="*" MinWidth="120" MaxWidth="280" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <StackPanel Margin="0,0,24,0">

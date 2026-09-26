@@ -47,4 +47,6 @@ public interface IAppMarketRepair
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<AppMarketRepairResult>> RecheckAsync(CancellationToken cancellationToken = default);
+
+    Task<OperationResult<AppMarketRepairResult>> RollbackInterruptedAsync(bool confirmed, CancellationToken cancellationToken = default);
 }

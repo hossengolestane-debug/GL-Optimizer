@@ -39,19 +39,19 @@
           <DataTemplate>
             <Grid Margin="4,6">
               <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
-                <ColumnDefinition Width="110" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="150" MinWidth="96" />
+                <ColumnDefinition Width="110" MinWidth="72" />
+                <ColumnDefinition Width="*" MinWidth="160" />
               </Grid.ColumnDefinitions>
               <TextBlock Text="{Binding Time}" Style="{StaticResource Text.Caption}" />
               <controls:StatusBadge Grid.Column="1" Text="{Binding Severity}" Kind="{Binding Kind}" VerticalAlignment="Top" />
               <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                <TextBlock>
+                <TextBlock TextWrapping="Wrap">
                   <Run Text="{Binding Category, Mode=OneWay}" FontWeight="SemiBold" />
                   <Run Text="  " />
                   <Run Text="{Binding Message, Mode=OneWay}" />
                 </TextBlock>
-                <TextBlock Text="{Binding Exception}" Style="{StaticResource Text.Caption}" Margin="0,4,0,0" />
+                <TextBlock Text="{Binding Exception}" Style="{StaticResource Text.Caption}" Margin="0,4,0,0" TextWrapping="Wrap" />
               </StackPanel>
             </Grid>
           </DataTemplate>

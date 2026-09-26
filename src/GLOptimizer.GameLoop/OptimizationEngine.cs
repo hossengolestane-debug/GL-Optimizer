@@ -113,6 +113,18 @@ public sealed class OptimizationEngine : IOptimizationService
             }
 
             backupId = backup.Value.Manifest.Id;
+            var noted = _records.Save(new OptimizationUndoRecord
+            {
+                BackupId = backupId,
+                Profile = profile.ToString(),
+                AppliedAtUtc = _clock.UtcNow,
+                InProgress = true
+            });
+            if (!noted.Succeeded)
+            {
+                return await FailAndRestore(backupId, "The undo record could not be saved, so the pre-apply backup was restored.", cancellationToken).ConfigureAwait(false);
+            }
+
             foreach (var group in preview.Edits.GroupBy(edit => edit.Path, StringComparer.OrdinalIgnoreCase))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -149,7 +161,8 @@ public sealed class OptimizationEngine : IOptimizationService
             {
                 BackupId = backupId,
                 Profile = profile.ToString(),
-                AppliedAtUtc = _clock.UtcNow
+                AppliedAtUtc = _clock.UtcNow,
+                InProgress = false
             });
             var report = BuildReport(context.Analysis, backupId);
             _log.Write(LogSeverity.Information, "Optimize", report.Summary + " Backup " + backupId + ".");
@@ -208,6 +221,11 @@ public sealed class OptimizationEngine : IOptimizationService
     private async Task<OperationResult<OptimizationReport>> FailAndRestore(string backupId, string reason, CancellationToken cancellationToken)
     {
         var restored = await _backups.RestoreAsync(backupId, confirmed: true, cancellationToken).ConfigureAwait(false);
+        if (restored.Succeeded)
+        {
+            _records.Clear();
+        }
+
         var message = restored.Succeeded
             ? reason.Contains("restored", StringComparison.OrdinalIgnoreCase)
                 ? reason

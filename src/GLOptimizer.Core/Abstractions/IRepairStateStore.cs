@@ -11,11 +11,19 @@ public sealed class RepairCheckpoint
     public DateTimeOffset CompletedAtUtc { get; set; }
 
     public bool AwaitingRefresh { get; set; }
+
+    public bool InProgress { get; set; }
+
+    public List<string> InstallRoots { get; set; } = [];
 }
 
 public interface IRepairStateStore
 {
+    string? LastProblem => null;
+
     RepairCheckpoint? Load();
 
     void Save(RepairCheckpoint checkpoint);
+
+    void Clear();
 }

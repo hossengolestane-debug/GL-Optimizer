@@ -1,4 +1,5 @@
 using GLOptimizer.Core.Abstractions;
+using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Launch;
 using GLOptimizer.Core.Logging;
 
@@ -14,6 +15,8 @@ public sealed class LaunchSessionWatcher : IDisposable
     private readonly IProcessPriority _priority;
     private readonly ILogStore _log;
     private readonly CancellationTokenSource _cancellation = new();
+    private int _watching;
+    private int _disposed;
 
     public LaunchSessionWatcher(ILaunchJournalStore journal, IProcessPriority priority, ILogStore log)
     {
@@ -25,7 +28,38 @@ public sealed class LaunchSessionWatcher : IDisposable
         _log = log;
     }
 
-    public void Start() => _ = RunAsync(_cancellation.Token);
+    public bool IsWatching => Volatile.Read(ref _watching) == 1;
+
+    public void Start()
+    {
+        if (SmokeTest.Active)
+        {
+            return;
+        }
+
+        NoteSessionStarted();
+    }
+
+    public void NoteSessionStarted()
+    {
+        if (SmokeTest.Active)
+        {
+            return;
+        }
+
+        if (Interlocked.CompareExchange(ref _watching, 1, 0) != 0)
+        {
+            return;
+        }
+
+        if (_journal.Load() is null)
+        {
+            Volatile.Write(ref _watching, 0);
+            return;
+        }
+
+        _ = RunAsync(_cancellation.Token);
+    }
 
     public void CheckOnce()
     {
@@ -47,25 +81,50 @@ public sealed class LaunchSessionWatcher : IDisposable
         _log.Write(LogSeverity.Information, "Launch", "Launch Optimized ended because the recorded GameLoop processes exited.");
     }
 
-    public void Dispose() => _cancellation.Cancel();
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        _cancellation.Cancel();
+        _cancellation.Dispose();
+    }
 
     private async Task RunAsync(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
-                CheckOnce();
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+                    if (_journal.Load() is null)
+                    {
+                        return;
+                    }
+
+                    CheckOnce();
+                    if (_journal.Load() is null)
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+                {
+                    return;
+                }
+                catch (Exception)
+                {
+                    // The next pass tries again. The journal stays until it can be cleared.
+                }
             }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (Exception)
-            {
-                // The next pass tries again. The journal stays until it can be cleared.
-            }
+        }
+        finally
+        {
+            Volatile.Write(ref _watching, 0);
         }
     }
 }

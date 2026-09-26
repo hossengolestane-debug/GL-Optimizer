@@ -17,10 +17,10 @@
             <controls:StatusBadge Margin="16,0,0,0" VerticalAlignment="Center" Text="{Binding OverallText}" Kind="{Binding OverallKind}" />
           </StackPanel>
           <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
-          <TextBlock Text="{Binding StatusLine}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" />
+          <TextBlock Text="{Binding StatusLine}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" TextWrapping="Wrap" />
           <TextBlock Text="{Binding LogPath}" Style="{StaticResource Text.Caption}" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding LogPath}" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+        <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
           <Button Content="Scan" Command="{Binding ScanCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
           <Button Content="Cancel" Command="{Binding CancelScanCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
           <Button Content="OPTIMIZE NOW"
@@ -28,7 +28,7 @@
                   Style="{StaticResource Button.Primary}"
                   ToolTip="{Binding OptimizeHint}"
                   ToolTipService.ShowOnDisabled="True" />
-        </StackPanel>
+        </WrapPanel>
       </Grid>
 
       <ItemsControl ItemsSource="{Binding Cards}" Margin="0,16,0,8">

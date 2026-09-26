@@ -11,7 +11,7 @@ using GLOptimizer.Core.Settings;
 
 namespace GLOptimizer.App.ViewModels;
 
-public partial class MonitoringViewModel : PageViewModel, IRefreshable
+public partial class MonitoringViewModel : PageViewModel, IRefreshable, IDisposable
 {
     private readonly IHardwareService _hardware;
     private readonly IMonitoringCoordinator _monitoring;
@@ -29,6 +29,8 @@ public partial class MonitoringViewModel : PageViewModel, IRefreshable
         SelectInterval(AppSettingsRules.NormalizeSampleInterval(settings.Current.SampleIntervalMilliseconds));
         ApplySample();
     }
+
+    public void Dispose() => _monitoring.Updated -= OnMonitoringUpdated;
 
     public ObservableCollection<DiagnosticRowModel> HardwareRows { get; } = new();
 

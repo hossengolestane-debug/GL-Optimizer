@@ -85,6 +85,7 @@ public sealed class AppMarketRepairService : IAppMarketRepair
         }
 
         string? directory = null;
+        var checkpointOpen = false;
         try
         {
             var built = await BuildAsync(cancellationToken).ConfigureAwait(false);
@@ -143,6 +144,17 @@ public sealed class AppMarketRepairService : IAppMarketRepair
             }
 
             var movedFiles = new List<StoredRepairFile>();
+            _checkpoint.Save(new RepairCheckpoint
+            {
+                BackupId = id,
+                PreMarketVersion = built.MarketVersion,
+                InstalledVersion = built.InstalledVersion,
+                CompletedAtUtc = created,
+                AwaitingRefresh = false,
+                InProgress = true,
+                InstallRoots = built.InstallRoots.ToList()
+            });
+            checkpointOpen = true;
             foreach (var root in built.InstallRoots)
             {
                 var batch = new List<string>();
@@ -175,8 +187,7 @@ public sealed class AppMarketRepairService : IAppMarketRepair
 
                     if (moved.RolledBack)
                     {
-                        TryDelete(directory);
-                        directory = null;
+                        Abandon(ref directory, ref checkpointOpen);
                     }
 
                     _log.Write(LogSeverity.Error, "App Market", moved.Error ?? "The repair did not finish.");
@@ -188,8 +199,7 @@ public sealed class AppMarketRepairService : IAppMarketRepair
 
             if (movedFiles.Count == 0)
             {
-                TryDelete(directory);
-                directory = null;
+                Abandon(ref directory, ref checkpointOpen);
                 return Failure("No verified cache was selected, so nothing was changed.");
             }
 
@@ -213,8 +223,11 @@ public sealed class AppMarketRepairService : IAppMarketRepair
                 PreMarketVersion = built.MarketVersion,
                 InstalledVersion = built.InstalledVersion,
                 CompletedAtUtc = created,
-                AwaitingRefresh = true
+                AwaitingRefresh = true,
+                InProgress = false,
+                InstallRoots = built.InstallRoots.ToList()
             });
+            checkpointOpen = false;
             directory = null;
             _log.Write(LogSeverity.Information, "App Market", CompletedToast);
             var verdict = RepairVerdictLogic.Evaluate(true, false, built.MarketVersion, null, built.InstalledVersion);
@@ -230,12 +243,12 @@ public sealed class AppMarketRepairService : IAppMarketRepair
         }
         catch (OperationCanceledException)
         {
-            TryDelete(directory);
+            Abandon(ref directory, ref checkpointOpen);
             return Failure("The repair was cancelled and nothing was left moved.");
         }
         catch (Exception ex)
         {
-            TryDelete(directory);
+            Abandon(ref directory, ref checkpointOpen);
             _log.Write(LogSeverity.Error, "App Market", ex.Message);
             return Failure(RepairVerdictLogic.FailedMessage);
         }
@@ -272,6 +285,84 @@ public sealed class AppMarketRepairService : IAppMarketRepair
             Verdict = verdict.Kind,
             Message = verdict.Message
         });
+    }
+
+    public Task<OperationResult<AppMarketRepairResult>> RollbackInterruptedAsync(bool confirmed, CancellationToken cancellationToken = default)
+    {
+        if (!confirmed)
+        {
+            return Task.FromResult(Failure("Rollback was not confirmed."));
+        }
+
+        try
+        {
+            var checkpoint = _checkpoint.Load();
+            if (!RepairRecovery.NeedsRollback(checkpoint) || checkpoint is null)
+            {
+                return Task.FromResult(Failure("No interrupted repair is waiting."));
+            }
+
+            var directory = BackupPathRules.ResolveBackupDirectory(_backupsRoot, checkpoint.BackupId);
+            if (directory is null || !Directory.Exists(directory))
+            {
+                _checkpoint.Clear();
+                return Task.FromResult(Rolled("The interrupted repair folder is gone, so nothing was restored.", checkpoint.BackupId));
+            }
+
+            var quarantine = Path.Combine(directory, QuarantineStore.FolderName);
+            if (!Directory.Exists(quarantine))
+            {
+                _checkpoint.Clear();
+                return Task.FromResult(Rolled("No quarantined files remained.", checkpoint.BackupId));
+            }
+
+            if (IsReparse(quarantine))
+            {
+                return Task.FromResult(Failure("The quarantine folder is a link and was not restored."));
+            }
+
+            foreach (var file in Directory.EnumerateFiles(quarantine, "*", SearchOption.AllDirectories))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (IsReparse(file))
+                {
+                    return Task.FromResult(Failure("A quarantined path is a link and was not restored."));
+                }
+
+                var relative = Path.GetRelativePath(quarantine, file);
+                var original = RepairRecovery.OriginalPath(checkpoint.InstallRoots, relative);
+                if (original is null)
+                {
+                    return Task.FromResult(Failure("A quarantined path is outside the saved install and was not restored."));
+                }
+
+                var error = QuarantineStore.Restore(directory, new StoredRepairFile
+                {
+                    OriginalPath = original,
+                    StoredRelativePath = relative.Replace('\\', '/'),
+                    Sha256 = QuarantineStore.HashFile(file),
+                    SizeBytes = new FileInfo(file).Length
+                }, checkpoint.InstallRoots, []);
+                if (error is not null)
+                {
+                    _log.Write(LogSeverity.Error, "App Market", error);
+                    return Task.FromResult(Failure(error));
+                }
+            }
+
+            _checkpoint.Clear();
+            const string message = "The interrupted repair was rolled back from quarantine.";
+            _log.Write(LogSeverity.Information, "App Market", message);
+            return Task.FromResult(Rolled(message, checkpoint.BackupId));
+        }
+        catch (OperationCanceledException)
+        {
+            return Task.FromResult(Failure("The rollback was cancelled."));
+        }
+        catch (Exception)
+        {
+            return Task.FromResult(Failure("The interrupted repair could not be rolled back."));
+        }
     }
 
     private async Task<BuiltPlan> BuildAsync(CancellationToken cancellationToken)
@@ -562,22 +653,49 @@ public sealed class AppMarketRepairService : IAppMarketRepair
         }
     }
 
-    private static void TryDelete(string? directory)
+    private void Abandon(ref string? directory, ref bool checkpointOpen)
+    {
+        if (!TryDelete(directory))
+        {
+            return;
+        }
+
+        directory = null;
+        if (!checkpointOpen)
+        {
+            return;
+        }
+
+        _checkpoint.Clear();
+        checkpointOpen = false;
+    }
+
+    private static bool TryDelete(string? directory)
     {
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
-            return;
+            return true;
         }
 
         try
         {
             Directory.Delete(directory, recursive: true);
+            return !Directory.Exists(directory);
         }
         catch (Exception)
         {
-            // A backup that could not be removed stays on disk.
+            return false;
         }
     }
+
+    private static OperationResult<AppMarketRepairResult> Rolled(string message, string backupId) =>
+        OperationResult<AppMarketRepairResult>.Success(new AppMarketRepairResult
+        {
+            Completed = false,
+            Message = message,
+            Verdict = RepairVerdictKind.Failed,
+            BackupId = backupId
+        });
 
     private static OperationResult<AppMarketRepairResult> Failure(string message) =>
         OperationResult<AppMarketRepairResult>.Failure(message);

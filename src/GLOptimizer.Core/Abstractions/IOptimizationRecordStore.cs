@@ -5,6 +5,8 @@ namespace GLOptimizer.Core.Abstractions;
 
 public interface IOptimizationRecordStore
 {
+    string? LastProblem => null;
+
     OperationResult Save(OptimizationUndoRecord record);
 
     OperationResult<OptimizationUndoRecord> Read();

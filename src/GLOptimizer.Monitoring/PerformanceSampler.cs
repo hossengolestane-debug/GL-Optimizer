@@ -105,7 +105,14 @@ public sealed class PerformanceSampler : IPerformanceSampler
                     GameLoopState = game.State
                 };
                 _buffer.Add(sample);
-                Sampled?.Invoke(this, sample);
+                try
+                {
+                    Sampled?.Invoke(this, sample);
+                }
+                catch (Exception)
+                {
+                    // A UI handler must not fault the sampler task.
+                }
             }
         }
         catch (OperationCanceledException)

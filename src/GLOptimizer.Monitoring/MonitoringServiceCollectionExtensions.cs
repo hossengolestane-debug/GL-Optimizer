@@ -10,8 +10,10 @@ public static class MonitoringServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<IHardwareProbe, WindowsHardwareProbe>();
         services.AddSingleton<IHardwareService, HardwareDetector>();
-        services.AddSingleton<ISystemMonitor, WindowsSystemMonitor>();
-        services.AddSingleton<IProcessProbe, WindowsProcessProbe>();
+        services.AddSingleton<WindowsSystemMonitor>();
+        services.AddSingleton<ISystemMonitor>(provider => provider.GetRequiredService<WindowsSystemMonitor>());
+        services.AddSingleton<WindowsProcessProbe>();
+        services.AddSingleton<IProcessProbe>(provider => provider.GetRequiredService<WindowsProcessProbe>());
         services.AddSingleton<IGameLoopMonitor, GameLoopMonitor>();
         services.AddSingleton<ISampleDelay, PeriodicSampleDelay>();
         services.AddSingleton<IPerformanceSampler, PerformanceSampler>();

@@ -2,7 +2,7 @@
 
 GameLoop Performance & App Market Utility.
 
-Phase 9 adds read-only PUBG Mobile diagnostics and the remaining local features: settings, a tray, a one-time welcome scan, Launch Optimized process priority, diagnostic export, an activity timeline, and a user-triggered network check. The earlier pipeline remains, including the confirmed App Market repair. It does not tune a running game, invent a frame rate, or change GameLoop's remote catalog.
+Phase 11 stabilizes recovery, corrupt local files, and shutdown. Phase 10 adds a Program Files installer. The app still does not tune a running game, invent a frame rate, or change GameLoop's remote catalog.
 
 ## What this build does
 
@@ -45,8 +45,8 @@ Developer tools (a debug log button and local path display) are compiled only in
 
 - Windows 10 or Windows 11, 64-bit
 - .NET 8 SDK to build
-- .NET 8 Desktop Runtime to run the framework-dependent publish
-- Per-monitor DPI v2 is declared in the application manifest
+- .NET 8 is included in the self-contained publish used by the installer
+- Per-monitor DPI v2 is set with `ApplicationHighDpiMode` on the WPF project. The executable manifest stays `asInvoker`
 
 The UI project is WPF (`net8.0-windows`). Class libraries and tests target `net8.0` and build on Windows, Linux, and macOS.
 
@@ -56,12 +56,22 @@ From the repository root, on Windows:
 
 ```powershell
 dotnet test .\GLOptimizer.sln -c Release
+.\scripts\publish-windows.ps1
+```
+
+`scripts\publish-windows.ps1` publishes a self-contained win-x64 folder (not a single file) to `publish\GLOptimizer.exe`. A framework-dependent publish, if you already have the .NET 8 Desktop Runtime, is:
+
+```powershell
 dotnet publish .\src\GLOptimizer.App\GLOptimizer.App.csproj -c Release -r win-x64 --self-contained false
 ```
 
-`scripts\build-windows.ps1` and `scripts\publish-windows.ps1` wrap those commands. The publish profile `win-x64.pubxml` is framework-dependent. Output:
+Compile the installer after the folder publish. Inno Setup 6 must be installed:
 
-`src\GLOptimizer.App\bin\Release\net8.0-windows\win-x64\publish\GLOptimizer.exe`
+```powershell
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=0.1.0" installer\GLOptimizer.iss
+```
+
+Output is `installer\output\GL-Optimizer-Setup.exe`. Setup asks for administrator rights and installs under Program Files. The installed app still runs as the user. See [installer/README.md](installer/README.md) and [docs/phase-10.md](docs/phase-10.md).
 
 The WPF project sets `EnableWindowsTargeting`, so the full solution also compiles on Linux and macOS. That produces a Windows binary. Launching the window still requires Windows 10 or Windows 11.
 
@@ -69,7 +79,26 @@ The WPF project sets `EnableWindowsTargeting`, so the full solution also compile
 dotnet test GLOptimizer.sln -c Release
 ```
 
-`scripts/build-libs.sh` runs that command. `GLOptimizer.NonWindows.slnf` builds only the class libraries and tests when the Windows targeting pack is not available. The installer is Phase 10 and is built on Windows by the `workflow_dispatch` workflow in `.github/workflows/windows-installer.yml`. See [installer/README.md](installer/README.md) and [docs/phase-10.md](docs/phase-10.md).
+`scripts/build-libs.sh` runs that command. `GLOptimizer.NonWindows.slnf` builds only the class libraries and tests when the Windows targeting pack is not available.
+
+## CI artifacts
+
+`.github/workflows/build.yml` runs `dotnet test` on Ubuntu. `.github/workflows/windows-installer.yml` runs on `windows-latest` for push, pull request, and manual dispatch. It builds, tests, publishes, compiles the installer, and smoke-tests install, `--smoke-test`, and uninstall.
+
+On a successful run, open the workflow run on GitHub and download:
+
+| Artifact | Contents |
+| --- | --- |
+| `GL-Optimizer-Setup` | `GL-Optimizer-Setup.exe` |
+| `publish` | self-contained `publish\GLOptimizer.exe` and its folder |
+
+## Troubleshooting
+
+- Setup says GL Optimizer is running. Close the window from the tray Exit command, or let setup close `GLOptimizer.exe`. The process holds a mutex named `GLOptimizer`.
+- Silent uninstall kept `%LocalAppData%\GLOptimizer`. That is the default. Run the uninstaller from Settings and choose Yes to remove backups, logs, and settings.
+- A corrupt `settings.json`, repair checkpoint, Launch Optimized journal, or optimization record is left on disk and the app continues with a warning. Rename the file if you want a clean default.
+- GameLoop was not found, or more than one install is listed. Pick the install on the GameLoop page. An unknown version stays Unknown.
+- Official COD and PUBG versions stay Unknown. There is no official version source in this build.
 
 ## Solution layout
 
@@ -82,7 +111,8 @@ src/
   GLOptimizer.GameLoop/        GameLoop detection, configuration, backup source, optimization, App Market inventory, and quarantined cache repair
   GLOptimizer.Monitoring/      hardware detection and live sampling; FPS still unavailable
   GLOptimizer.Tests/
-installer/                     not shipped yet
+installer/                     Inno Setup script; compiled on Windows
+publish/                       self-contained win-x64 output (not committed)
 assets/                        monochrome mark
 docs/
 scripts/
@@ -105,6 +135,14 @@ Default retention is 14 days. The active log rotates after 2 MB. Both can be cha
 
 ## Phases
 
-Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). Phase 3 configuration discovery is described in [docs/phase-3.md](docs/phase-3.md). Phase 4 backup and restore is described in [docs/phase-4.md](docs/phase-4.md). Phase 5 optimization is described in [docs/phase-5.md](docs/phase-5.md). Phase 6 COD Mobile diagnostics is described in [docs/phase-6.md](docs/phase-6.md). Phase 7 App Market diagnostics is described in [docs/phase-7.md](docs/phase-7.md). Phase 8 App Market repair is described in [docs/phase-8.md](docs/phase-8.md). Phase 9 PUBG Mobile diagnostics and the spec-gap pass are described in [docs/phase-9.md](docs/phase-9.md). Phase 10, the Windows installer, is planned in [docs/phase-10.md](docs/phase-10.md). On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, FPS, or GameLoop settings.
+Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). Phase 3 configuration discovery is described in [docs/phase-3.md](docs/phase-3.md). Phase 4 backup and restore is described in [docs/phase-4.md](docs/phase-4.md). Phase 5 optimization is described in [docs/phase-5.md](docs/phase-5.md). Phase 6 COD Mobile diagnostics is described in [docs/phase-6.md](docs/phase-6.md). Phase 7 App Market diagnostics is described in [docs/phase-7.md](docs/phase-7.md). Phase 8 App Market repair is described in [docs/phase-8.md](docs/phase-8.md). Phase 9 PUBG Mobile diagnostics and the spec-gap pass are described in [docs/phase-9.md](docs/phase-9.md). The installer is described in [docs/phase-10.md](docs/phase-10.md). Stabilization is described in [docs/phase-11.md](docs/phase-11.md). On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, FPS, or GameLoop settings.
+
+## Known limitations
+
+- Official GameLoop, COD Mobile, and PUBG Mobile versions are Unknown. No host is contacted for them.
+- FPS is unavailable. No number is invented.
+- Config key names were not checked against a real GameLoop install in this environment.
+- Light theme, power plan changes, graphics preference changes, benchmark mode, and the self-update download are not implemented.
+- Layout at 1100×700 and at 125/150/200% scaling was reviewed in XAML and was not launched on a Windows desktop here.
 
 More detail is in [docs/architecture.md](docs/architecture.md).

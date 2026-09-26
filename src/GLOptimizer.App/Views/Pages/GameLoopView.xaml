@@ -16,10 +16,10 @@
           <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
           <TextBlock Text="{Binding StatusLine}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+        <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
           <Button Content="Scan" Command="{Binding ScanCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
           <Button Content="Cancel" Command="{Binding CancelScanCommand}" Style="{StaticResource Button.Secondary}" />
-        </StackPanel>
+        </WrapPanel>
       </Grid>
 
       <TextBlock Text="No verified GameLoop install was found." Style="{StaticResource Text.Subtitle}" Margin="0,20,0,0"
@@ -59,12 +59,12 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-            <Button Content="Start" Command="{Binding StartCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
-            <Button Content="Restart" Command="{Binding RestartCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
-            <Button Content="Close" Command="{Binding CloseCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
-            <Button Content="Launch Optimized" Command="{Binding LaunchOptimizedCommand}" Style="{StaticResource Button.Primary}" />
-          </StackPanel>
+          <WrapPanel Orientation="Horizontal" Margin="0,16,0,0">
+            <Button Content="Start" Command="{Binding StartCommand}" Margin="0,0,8,8" Style="{StaticResource Button.Secondary}" />
+            <Button Content="Restart" Command="{Binding RestartCommand}" Margin="0,0,8,8" Style="{StaticResource Button.Secondary}" />
+            <Button Content="Close" Command="{Binding CloseCommand}" Margin="0,0,8,8" Style="{StaticResource Button.Secondary}" />
+            <Button Content="Launch Optimized" Command="{Binding LaunchOptimizedCommand}" Margin="0,0,8,8" Style="{StaticResource Button.Primary}" />
+          </WrapPanel>
           <TextBlock Text="{Binding ActionMessage}" Style="{StaticResource Text.Caption}" Margin="0,12,0,0" TextWrapping="Wrap" />
           <TextBlock Text="{Binding RuntimeNote}" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" TextWrapping="Wrap" />
         </StackPanel>

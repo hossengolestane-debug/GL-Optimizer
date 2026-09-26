@@ -519,6 +519,43 @@ public class AppMarketRepairTests
     }
 
     [Fact]
+    public async Task Interrupted_repair_rolls_cache_back_from_quarantine()
+    {
+        using var temp = new TempTree();
+        var layout = Layout(temp);
+        var locations = new AppDataLocations(temp.AppData);
+        var store = new JsonRepairStateStore(locations);
+        var backupId = BackupPathRules.NewId(DateTimeOffset.Parse("2026-01-02T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var directory = BackupPathRules.ResolveBackupDirectory(locations.BackupsDirectory, backupId);
+        Assert.NotNull(directory);
+        var moved = QuarantineStore.Move(new QuarantineMoveRequest
+        {
+            BackupDirectory = directory!,
+            InstallRoot = Path.GetFullPath(layout.Root),
+            SourceFiles = [layout.CacheFile]
+        }, CancellationToken.None);
+        Assert.True(moved.Succeeded, moved.Error);
+        Assert.False(File.Exists(layout.CacheFile));
+        store.Save(new RepairCheckpoint
+        {
+            BackupId = backupId,
+            InProgress = true,
+            InstallRoots = [Path.GetFullPath(layout.Root)]
+        });
+
+        var harness = CreateHarness(temp, layout, new FakeProcesses(), locations: locations);
+        var denied = await harness.Service.RollbackInterruptedAsync(confirmed: false);
+        Assert.False(denied.Succeeded);
+        Assert.False(File.Exists(layout.CacheFile));
+
+        var rolled = await harness.Service.RollbackInterruptedAsync(confirmed: true);
+        Assert.True(rolled.Succeeded, rolled.Error);
+        Assert.Equal("cache-bytes", await File.ReadAllTextAsync(layout.CacheFile));
+        Assert.Equal("{\"v\":1}", await File.ReadAllTextAsync(layout.MetadataFile));
+        Assert.Null(new JsonRepairStateStore(locations).Load());
+    }
+
+    [Fact]
     public async Task Recheck_uses_the_saved_pre_repair_version_for_the_local_or_remote_verdict()
     {
         using var temp = new TempTree();

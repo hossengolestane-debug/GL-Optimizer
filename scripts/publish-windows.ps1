@@ -6,5 +6,7 @@ if ($env:OS -ne "Windows_NT") {
 
 $root = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $root "src\GLOptimizer.App\GLOptimizer.App.csproj"
-dotnet publish $project -c Release -r win-x64 --self-contained false --nologo
+$publish = Join-Path $root "publish"
+dotnet publish $project -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o $publish --nologo
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Write-Host "Published $publish\GLOptimizer.exe"

@@ -31,7 +31,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(locations);
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<ISettingsStore, JsonSettingsStore>();
-        services.AddSingleton<ILogStore, FileLogStore>();
+        services.AddSingleton<FileLogStore>();
+        services.AddSingleton<ILogStore>(provider => provider.GetRequiredService<FileLogStore>());
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IBackupService, FileBackupService>();
         services.AddSingleton<IRepairStateStore, JsonRepairStateStore>();

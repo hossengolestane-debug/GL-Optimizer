@@ -19,8 +19,11 @@ public sealed class JsonRepairStateStore : IRepairStateStore
         _path = Path.Combine(locations.Root, "repair-checkpoint.json");
     }
 
+    public string? LastProblem { get; private set; }
+
     public RepairCheckpoint? Load()
     {
+        LastProblem = null;
         try
         {
             if (!File.Exists(_path))
@@ -29,10 +32,17 @@ public sealed class JsonRepairStateStore : IRepairStateStore
             }
 
             var checkpoint = JsonSerializer.Deserialize<RepairCheckpoint>(File.ReadAllText(_path), JsonOptions);
-            return string.IsNullOrWhiteSpace(checkpoint?.BackupId) ? null : checkpoint;
+            if (checkpoint is null || string.IsNullOrWhiteSpace(checkpoint.BackupId))
+            {
+                LastProblem = "The repair checkpoint could not be read. It was left in place.";
+                return null;
+            }
+
+            return checkpoint;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
+            LastProblem = "The repair checkpoint could not be read. It was left in place.";
             return null;
         }
     }
@@ -47,5 +57,23 @@ public sealed class JsonRepairStateStore : IRepairStateStore
         }
 
         File.WriteAllText(_path, JsonSerializer.Serialize(checkpoint, JsonOptions));
+        LastProblem = null;
+    }
+
+    public void Clear()
+    {
+        try
+        {
+            if (File.Exists(_path))
+            {
+                File.Delete(_path);
+            }
+
+            LastProblem = null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LastProblem = "The repair checkpoint could not be removed.";
+        }
     }
 }

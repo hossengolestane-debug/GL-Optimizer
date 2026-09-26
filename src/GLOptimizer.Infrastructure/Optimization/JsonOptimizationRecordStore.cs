@@ -30,8 +30,11 @@ public sealed class JsonOptimizationRecordStore : IOptimizationRecordStore
         }
     }
 
+    public string? LastProblem { get; private set; }
+
     public OperationResult<OptimizationUndoRecord> Read()
     {
+        LastProblem = null;
         try
         {
             if (!File.Exists(_path))
@@ -40,13 +43,18 @@ public sealed class JsonOptimizationRecordStore : IOptimizationRecordStore
             }
 
             var record = JsonSerializer.Deserialize<OptimizationUndoRecord>(File.ReadAllText(_path), Json);
-            return record is null || string.IsNullOrWhiteSpace(record.BackupId)
-                ? OperationResult<OptimizationUndoRecord>.Failure("The last optimization record could not be read.")
-                : OperationResult<OptimizationUndoRecord>.Success(record);
+            if (record is null || string.IsNullOrWhiteSpace(record.BackupId))
+            {
+                LastProblem = "The last optimization record could not be read.";
+                return OperationResult<OptimizationUndoRecord>.Failure(LastProblem);
+            }
+
+            return OperationResult<OptimizationUndoRecord>.Success(record);
         }
         catch (Exception)
         {
-            return OperationResult<OptimizationUndoRecord>.Failure("The last optimization record could not be read.");
+            LastProblem = "The last optimization record could not be read.";
+            return OperationResult<OptimizationUndoRecord>.Failure(LastProblem);
         }
     }
 

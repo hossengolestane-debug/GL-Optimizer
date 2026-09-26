@@ -3,6 +3,8 @@ using GLOptimizer.App.ViewModels;
 using GLOptimizer.App.Views;
 using GLOptimizer.Core;
 using GLOptimizer.Core.Abstractions;
+using GLOptimizer.Core.Diagnostics;
+using GLOptimizer.Core.Launch;
 using GLOptimizer.Core.Logging;
 using GLOptimizer.GameLoop;
 using GLOptimizer.Infrastructure.DependencyInjection;
@@ -23,7 +25,8 @@ public static class AppHost
         services.AddSingleton<IFolderOpener, ExplorerFolderOpener>();
         services.AddSingleton<IToastCenter, ToastCenter>();
         services.AddSingleton<IUserConfirmation, MessageBoxConfirmation>();
-        services.AddSingleton<IPageViewModelFactory, PageViewModelFactory>();
+        services.AddSingleton<PageViewModelFactory>();
+        services.AddSingleton<IPageViewModelFactory>(provider => provider.GetRequiredService<PageViewModelFactory>());
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         services.AddSingleton<TrayHost>();
@@ -50,6 +53,37 @@ public static class AppHost
             LogSeverity.Information,
             "App",
             $"{BuildInfo.ProductName} {BuildInfo.PhaseName} ({BuildInfo.Version}) started.");
-        provider.GetRequiredService<LaunchSessionWatcher>().Start();
+        Warn(log, "Repair", provider.GetRequiredService<IRepairStateStore>().LastProblemAfterLoad());
+        Warn(log, "Launch", provider.GetRequiredService<ILaunchJournalStore>().LastProblemAfterLoad());
+        var optimization = provider.GetRequiredService<IOptimizationRecordStore>();
+        _ = optimization.Read();
+        Warn(log, "Optimize", optimization.LastProblem);
+        if (!SmokeTest.Active)
+        {
+            provider.GetRequiredService<LaunchSessionWatcher>().Start();
+        }
+    }
+
+    private static void Warn(ILogStore log, string category, string? problem)
+    {
+        if (!string.IsNullOrWhiteSpace(problem))
+        {
+            log.Write(LogSeverity.Warning, category, problem);
+        }
+    }
+}
+
+internal static class StoreWarnings
+{
+    public static string? LastProblemAfterLoad(this IRepairStateStore store)
+    {
+        _ = store.Load();
+        return store.LastProblem;
+    }
+
+    public static string? LastProblemAfterLoad(this ILaunchJournalStore store)
+    {
+        _ = store.Load();
+        return store.LastProblem;
     }
 }

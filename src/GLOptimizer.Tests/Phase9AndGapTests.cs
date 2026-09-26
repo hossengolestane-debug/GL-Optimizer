@@ -253,6 +253,21 @@ public class Phase9AndGapTests
     }
 
     [Fact]
+    public void Launch_watcher_does_not_poll_when_no_journal_exists()
+    {
+        var journal = new MemoryJournal();
+        using var watcher = new LaunchSessionWatcher(journal, new MemoryPriority(), new MemoryLog());
+        watcher.Start();
+        Assert.False(watcher.IsWatching);
+        journal.Save(new LaunchJournal
+        {
+            Changes = [new PriorityChange { ProcessId = 1, PreviousPriority = "Normal" }]
+        });
+        watcher.NoteSessionStarted();
+        Assert.True(watcher.IsWatching);
+    }
+
+    [Fact]
     public void Start_with_windows_writes_and_removes_only_the_named_value()
     {
         var startup = new MemoryStartup();

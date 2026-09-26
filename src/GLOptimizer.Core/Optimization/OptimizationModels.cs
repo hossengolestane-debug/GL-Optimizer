@@ -140,4 +140,6 @@ public sealed class OptimizationUndoRecord
     public string Profile { get; set; } = string.Empty;
 
     public DateTimeOffset AppliedAtUtc { get; set; }
+
+    public bool InProgress { get; set; }
 }

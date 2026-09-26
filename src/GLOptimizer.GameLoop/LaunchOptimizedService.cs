@@ -13,13 +13,15 @@ public sealed class LaunchOptimizedService : ILaunchOptimized
     private readonly IProcessPriority _priority;
     private readonly ILaunchJournalStore _journal;
     private readonly IClock _clock;
+    private readonly LaunchSessionWatcher? _watcher;
 
     public LaunchOptimizedService(
         IGameLoopDetector detector,
         IProcessControl processes,
         IProcessPriority priority,
         ILaunchJournalStore journal,
-        IClock clock)
+        IClock clock,
+        LaunchSessionWatcher? watcher = null)
     {
         ArgumentNullException.ThrowIfNull(detector);
         ArgumentNullException.ThrowIfNull(processes);
@@ -31,6 +33,7 @@ public sealed class LaunchOptimizedService : ILaunchOptimized
         _priority = priority;
         _journal = journal;
         _clock = clock;
+        _watcher = watcher;
     }
 
     public LaunchRecovery Inspect()
@@ -102,6 +105,7 @@ public sealed class LaunchOptimizedService : ILaunchOptimized
             InstallPath = roots.FirstOrDefault() ?? string.Empty,
             Changes = changes
         });
+        _watcher?.NoteSessionStarted();
         return OperationResult.Success();
     }
 

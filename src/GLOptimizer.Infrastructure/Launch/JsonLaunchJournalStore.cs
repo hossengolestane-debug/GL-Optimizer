@@ -19,8 +19,11 @@ public sealed class JsonLaunchJournalStore : ILaunchJournalStore
         _path = Path.Combine(locations.Root, "launch-optimized.json");
     }
 
+    public string? LastProblem { get; private set; }
+
     public LaunchJournal? Load()
     {
+        LastProblem = null;
         try
         {
             if (!File.Exists(_path))
@@ -29,10 +32,21 @@ public sealed class JsonLaunchJournalStore : ILaunchJournalStore
             }
 
             var journal = JsonSerializer.Deserialize<LaunchJournal>(File.ReadAllText(_path), JsonOptions);
-            return journal is null || journal.Changes.Count == 0 ? null : journal;
+            if (journal is null || journal.Changes.Count == 0)
+            {
+                if (journal is null)
+                {
+                    LastProblem = "The Launch Optimized journal could not be read. It was left in place.";
+                }
+
+                return null;
+            }
+
+            return journal;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
+            LastProblem = "The Launch Optimized journal could not be read. It was left in place.";
             return null;
         }
     }

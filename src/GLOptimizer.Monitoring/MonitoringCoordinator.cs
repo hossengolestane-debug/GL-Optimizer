@@ -1,4 +1,5 @@
 using GLOptimizer.Core.Abstractions;
+using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Monitoring;
 using GLOptimizer.Core.Navigation;
 using GLOptimizer.Core.Settings;
@@ -106,7 +107,8 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
             return;
         }
 
-        var shouldRun = _settings.Current.MonitoringEnabled
+        var shouldRun = !SmokeTest.Active
+            && _settings.Current.MonitoringEnabled
             && (_page == AppPage.Dashboard || (_page == AppPage.Monitoring && !_held));
         if (!shouldRun)
         {

@@ -18,6 +18,7 @@ public sealed class JsonSettingsStore : ISettingsStore
         Converters = { new JsonStringEnumConverter() }
     };
 
+    private readonly object _gate = new();
     private readonly string _path;
     private AppSettings _current = new();
 
@@ -27,16 +28,42 @@ public sealed class JsonSettingsStore : ISettingsStore
         _path = locations.SettingsFile;
     }
 
-    public AppSettings Current => _current.Copy();
+    public AppSettings Current
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _current.Copy();
+            }
+        }
+    }
 
     public OperationResult Load()
+    {
+        lock (_gate)
+        {
+            return LoadNoLock();
+        }
+    }
+
+    public OperationResult Save(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        lock (_gate)
+        {
+            return SaveNoLock(settings);
+        }
+    }
+
+    private OperationResult LoadNoLock()
     {
         try
         {
             if (!File.Exists(_path))
             {
                 _current = new AppSettings();
-                return Save(_current);
+                return SaveNoLock(_current);
             }
 
             var json = File.ReadAllText(_path);
@@ -63,9 +90,8 @@ public sealed class JsonSettingsStore : ISettingsStore
         }
     }
 
-    public OperationResult Save(AppSettings settings)
+    private OperationResult SaveNoLock(AppSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         try
         {
             var copy = settings.Copy();

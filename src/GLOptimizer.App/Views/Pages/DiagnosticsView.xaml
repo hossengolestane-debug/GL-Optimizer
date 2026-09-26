@@ -15,13 +15,13 @@
           <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
           <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+        <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
           <Button Content="Run checks" Command="{Binding RunChecksCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
           <Button Content="Cancel" Command="{Binding CancelScanCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
           <Button Content="Export TXT" Command="{Binding ExportTextCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
           <Button Content="Export JSON" Command="{Binding ExportJsonCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
-          <Button Content="Copy Report" Command="{Binding CopyReportCommand}" Style="{StaticResource Button.Secondary}" />
-        </StackPanel>
+          <Button Content="Copy Report" Command="{Binding CopyReportCommand}" Margin="0,0,8,8" Style="{StaticResource Button.Secondary}" />
+        </WrapPanel>
       </Grid>
       <Border Style="{StaticResource Card}" Margin="0,20,0,0">
         <ItemsControl ItemsSource="{Binding Rows}">

@@ -43,15 +43,15 @@
           <TextBlock Text="Detected issue" Style="{StaticResource Text.Section}" Margin="0,16,0,0" />
           <TextBlock Text="{Binding Issue}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap" />
           <TextBlock Text="{Binding RepairMessage}" Style="{StaticResource Text.Caption}" Margin="0,12,0,0" TextWrapping="Wrap" />
-          <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+          <WrapPanel Orientation="Horizontal" Margin="0,16,0,0">
             <Button Content="CHECK AGAIN" Command="{Binding CheckAgainCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
             <Button Content="DRY RUN REPAIR" Command="{Binding DryRunCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
-            <Button Content="REPAIR APP MARKET" Command="{Binding RepairCommand}" Style="{StaticResource Button.Secondary}" />
-          </StackPanel>
-          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <Button Content="REPAIR APP MARKET" Command="{Binding RepairCommand}" Margin="0,0,8,8" Style="{StaticResource Button.Secondary}" />
+          </WrapPanel>
+          <WrapPanel Orientation="Horizontal" Margin="0,8,0,0">
             <Button Content="START GAMELOOP" Command="{Binding StartGameLoopCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
-            <Button Content="RE-CHECK AFTER GAMELOOP REFRESH" Command="{Binding RecheckCommand}" Style="{StaticResource Button.Secondary}" />
-          </StackPanel>
+            <Button Content="RE-CHECK AFTER GAMELOOP REFRESH" Command="{Binding RecheckCommand}" Margin="0,0,8,8" Style="{StaticResource Button.Secondary}" />
+          </WrapPanel>
           <Expander Header="What will be changed?" Margin="0,16,0,0">
             <StackPanel Margin="0,8,0,0">
               <TextBlock Text="{Binding RepairNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />

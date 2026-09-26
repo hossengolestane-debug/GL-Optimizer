@@ -15,7 +15,7 @@ using GLOptimizer.GameLoop;
 
 namespace GLOptimizer.App.ViewModels;
 
-public partial class DashboardViewModel : PageViewModel, IRefreshable
+public partial class DashboardViewModel : PageViewModel, IRefreshable, IDisposable
 {
     private readonly IHardwareService _hardware;
     private readonly IGameLoopDetector _gameLoop;
@@ -55,6 +55,8 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         _profile = profile;
         _monitoring.Updated += OnMonitoringUpdated;
     }
+
+    public void Dispose() => _monitoring.Updated -= OnMonitoringUpdated;
 
     public string SafetyNote => Phase0Notices.Safety;
 

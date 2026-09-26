@@ -47,6 +47,8 @@ public interface IProcessPriority
 
 public interface ILaunchJournalStore
 {
+    string? LastProblem => null;
+
     LaunchJournal? Load();
 
     void Save(LaunchJournal journal);

@@ -1,6 +1,8 @@
 name: windows-installer
 
 on:
+  push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -11,13 +13,87 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+
+      - name: Build Release
+        run: dotnet build GLOptimizer.sln -c Release --nologo
+
+      - name: Test
+        run: dotnet test GLOptimizer.sln -c Release --nologo --no-build
+
       - name: Publish self-contained win-x64
-        run: dotnet publish src/GLOptimizer.App/GLOptimizer.App.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+        run: dotnet publish src/GLOptimizer.App/GLOptimizer.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o publish --nologo
+
       - name: Install Inno Setup
-        run: choco install innosetup --no-progress -y
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $candidates = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+          )
+          $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            choco install innosetup -y --no-progress
+            $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) { throw "ISCC.exe was not found." }
+          Add-Content -Path $env:GITHUB_PATH -Value (Split-Path $iscc)
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+
       - name: Compile GL-Optimizer-Setup.exe
-        run: iscc installer/GLOptimizer.iss
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          [xml]$props = Get-Content -Raw Directory.Build.props
+          $version = [string]$props.Project.PropertyGroup.Version
+          if ([string]::IsNullOrWhiteSpace($version)) { throw "Version was not read from Directory.Build.props." }
+          & $env:ISCC "/DMyAppVersion=$version" installer/GLOptimizer.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC exited $LASTEXITCODE" }
+
+      - name: Smoke install, launch, and uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $setup = Join-Path (Get-Location) "installer\output\GL-Optimizer-Setup.exe"
+          if (-not (Test-Path $setup)) { throw "Setup was not produced." }
+          $dir = "C:\glopt-smoke"
+          if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
+          $install = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$dir" -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Install exited $($install.ExitCode)" }
+          $exe = Join-Path $dir "GLOptimizer.exe"
+          if (-not (Test-Path $exe)) { throw "GLOptimizer.exe was not installed." }
+          $key = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{8F4E2A1C-6B3D-4E90-9C1A-7D5E2F8A4B16}_is1"
+          if (-not (Test-Path $key)) { throw "Uninstall registry entry is missing." }
+          $display = (Get-ItemProperty $key).DisplayName
+          if ($display -ne "GL Optimizer") { throw "Unexpected DisplayName: $display" }
+          $smoke = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -PassThru -NoNewWindow
+          if (-not $smoke.WaitForExit(90000)) {
+            Stop-Process -Id $smoke.Id -Force
+            throw "Smoke test did not exit."
+          }
+          if ($smoke.ExitCode -ne 0) { throw "Smoke test exited $($smoke.ExitCode)" }
+          $userData = Join-Path $env:LOCALAPPDATA "GLOptimizer"
+          if (-not (Test-Path $userData)) { throw "User data was not created by startup." }
+          $logs = Get-ChildItem (Join-Path $userData "Logs") -Filter *.log -ErrorAction SilentlyContinue
+          $marker = $false
+          foreach ($log in $logs) {
+            if (Select-String -Path $log.FullName -Pattern "GL Optimizer smoke test ok" -Quiet) { $marker = $true }
+          }
+          if (-not $marker) { throw "Smoke marker was not written to the log." }
+          $unins = Join-Path $dir "unins000.exe"
+          $remove = Start-Process -FilePath $unins -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          if ($remove.ExitCode -ne 0) { throw "Uninstall exited $($remove.ExitCode)" }
+          $deadline = (Get-Date).AddSeconds(30)
+          while ((Test-Path $exe) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 1 }
+          if (Test-Path $exe) { throw "Program files were not removed." }
+          if (-not (Test-Path $userData)) { throw "Silent uninstall removed user data. The default is to keep it." }
+
       - uses: actions/upload-artifact@v4
         with:
           name: GL-Optimizer-Setup
           path: installer/output/GL-Optimizer-Setup.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publish
+          path: publish/

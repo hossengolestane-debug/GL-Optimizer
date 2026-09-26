@@ -175,6 +175,13 @@ public class OptimizationTests
         Assert.Equal(original.Replace("240", "160", StringComparison.Ordinal), await File.ReadAllTextAsync(file));
         Assert.Contains("GameLoop configuration updated", applied.Value!.ResultText, StringComparison.Ordinal);
         Assert.False(string.IsNullOrWhiteSpace(applied.Value.BackupId));
+        var recordPath = Path.Combine(new AppDataLocations(temp.AppData).Root, "last-optimization.json");
+        var saved = System.Text.Json.JsonSerializer.Deserialize<OptimizationUndoRecord>(
+            await File.ReadAllTextAsync(recordPath),
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.NotNull(saved);
+        Assert.False(saved!.InProgress);
+        Assert.Equal(applied.Value.BackupId, saved.BackupId);
 
         var undone = await engine.UndoLastAsync(confirmed: true);
         Assert.True(undone.Succeeded, undone.Error);
@@ -211,6 +218,7 @@ public class OptimizationTests
         Assert.False(applied.Succeeded);
         Assert.Contains("restored", applied.Error, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(original, await File.ReadAllTextAsync(file));
+        Assert.False(File.Exists(Path.Combine(new AppDataLocations(temp.AppData).Root, "last-optimization.json")));
     }
 
     private static IReadOnlyList<OptimizationRecommendation> Recommend(OptimizationProfile profile, HardwareReport hardware, params LocatedSetting[] located) =>

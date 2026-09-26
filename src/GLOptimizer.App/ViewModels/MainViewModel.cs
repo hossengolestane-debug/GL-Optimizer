@@ -6,11 +6,13 @@ using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Results;
 using GLOptimizer.Core.Optimization;
+using GLOptimizer.Core.Recovery;
 
 namespace GLOptimizer.App.ViewModels;
 
-public partial class MainViewModel : ObservableObject
+public partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly INavigationService _navigation;
     private readonly IPageViewModelFactory _pages;
@@ -21,10 +23,16 @@ public partial class MainViewModel : ObservableObject
     private readonly IGameLoopDetector _detector;
     private readonly IOptimizationService _optimization;
     private readonly ILaunchOptimized _launch;
+    private readonly IRepairStateStore _repair;
+    private readonly IOptimizationRecordStore _records;
+    private readonly IAppMarketRepair _marketRepair;
     private readonly IToastCenter _toasts;
+    private readonly EventHandler _onToast;
+    private readonly EventHandler<AppPage> _onPage;
     private readonly SynchronizationContext? _ui = SynchronizationContext.Current;
     private bool _persistSidebar;
     private bool _showingPage;
+    private RecoveryKind _recoveryKind;
 
     public MainViewModel(
         INavigationService navigation,
@@ -36,6 +44,9 @@ public partial class MainViewModel : ObservableObject
         IGameLoopDetector detector,
         IOptimizationService optimization,
         ILaunchOptimized launch,
+        IRepairStateStore repair,
+        IOptimizationRecordStore records,
+        IAppMarketRepair marketRepair,
         IToastCenter toasts)
     {
         _navigation = navigation;
@@ -47,8 +58,12 @@ public partial class MainViewModel : ObservableObject
         _detector = detector;
         _optimization = optimization;
         _launch = launch;
+        _repair = repair;
+        _records = records;
+        _marketRepair = marketRepair;
         _toasts = toasts;
-        _toasts.Changed += (_, _) => Post(() => ToastText = _toasts.Current);
+        _onToast = (_, _) => Post(() => ToastText = _toasts.Current);
+        _toasts.Changed += _onToast;
         Sections = PageCatalog.All
             .GroupBy(page => page.Group)
             .Select(group => new NavigationSectionViewModel
@@ -59,18 +74,17 @@ public partial class MainViewModel : ObservableObject
             .ToList();
         IsSidebarCollapsed = settings.Current.SidebarCollapsed;
         _persistSidebar = true;
-        _navigation.CurrentChanged += (_, page) =>
+        _onPage = (_, page) =>
         {
             if (!_showingPage)
             {
                 Show(page);
             }
         };
+        _navigation.CurrentChanged += _onPage;
         Navigate(AppPage.Dashboard);
-        var recovery = _launch.Inspect();
-        ShowRecovery = recovery.JournalPresent;
-        RecoveryMessage = recovery.Message;
-        if (!_settings.Current.FirstRunCompleted)
+        LoadRecovery();
+        if (!SmokeTest.Active && !_settings.Current.FirstRunCompleted)
         {
             ShowFirstRun = true;
             FirstRunHeadline = "Welcome to GL Optimizer";
@@ -113,6 +127,9 @@ public partial class MainViewModel : ObservableObject
     private string _recoveryMessage = string.Empty;
 
     [ObservableProperty]
+    private string _recoveryAction = "Restore priorities";
+
+    [ObservableProperty]
     private bool _showFirstRun;
 
     [ObservableProperty]
@@ -149,17 +166,25 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RestoreRecoveryAsync()
     {
-        var result = await _launch.RecoverAsync(restore: true);
+        var result = await RunRecoveryAsync();
+        if (!result.Succeeded)
+        {
+            RecoveryMessage = result.Error ?? "Recovery could not finish.";
+            return;
+        }
+
         ShowRecovery = false;
-        RecoveryMessage = result.Succeeded
-            ? "Saved priorities were restored."
-            : result.Error ?? "Recovery could not finish.";
+        RecoveryMessage = result.Error ?? "Recovery finished.";
     }
 
     [RelayCommand]
     private async Task DismissRecoveryAsync()
     {
-        await _launch.RecoverAsync(restore: false);
+        if (_recoveryKind == RecoveryKind.Launch)
+        {
+            await _launch.RecoverAsync(restore: false);
+        }
+
         ShowRecovery = false;
     }
 
@@ -180,6 +205,46 @@ public partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void ToggleSidebar() => IsSidebarCollapsed = !IsSidebarCollapsed;
+
+    public void Dispose()
+    {
+        _toasts.Changed -= _onToast;
+        _navigation.CurrentChanged -= _onPage;
+    }
+
+    private void LoadRecovery()
+    {
+        var record = _records.Read();
+        var decision = StartupRecoveryLogic.Inspect(
+            _repair.Load(),
+            record.Succeeded ? record.Value : null,
+            _launch.Inspect());
+        _recoveryKind = decision.Kind;
+        ShowRecovery = decision.Kind != RecoveryKind.None;
+        RecoveryMessage = decision.Message;
+        RecoveryAction = string.IsNullOrWhiteSpace(decision.ActionLabel) ? "Restore priorities" : decision.ActionLabel;
+    }
+
+    private async Task<OperationResult> RunRecoveryAsync()
+    {
+        switch (_recoveryKind)
+        {
+            case RecoveryKind.Repair:
+                var rolled = await _marketRepair.RollbackInterruptedAsync(confirmed: true);
+                return rolled.Succeeded
+                    ? OperationResult.Success()
+                    : OperationResult.Failure(rolled.Error ?? "The interrupted repair could not be rolled back.");
+            case RecoveryKind.Optimization:
+                var restored = await _optimization.UndoLastAsync(confirmed: true);
+                return restored.Succeeded
+                    ? OperationResult.Success()
+                    : OperationResult.Failure(restored.Error ?? "The pre-apply backup could not be restored.");
+            case RecoveryKind.Launch:
+                return await _launch.RecoverAsync(restore: true);
+            default:
+                return OperationResult.Failure("Nothing is waiting to be recovered.");
+        }
+    }
 
     private async Task ScanFirstRunAsync()
     {

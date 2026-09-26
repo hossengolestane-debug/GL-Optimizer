@@ -38,16 +38,16 @@
             <Run Text="  " />
             <Run Text="{Binding ComparisonText, Mode=OneWay}" />
           </TextBlock>
-          <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+          <WrapPanel Orientation="Horizontal" Margin="0,16,0,0">
             <Button Content="Check Version" Command="{Binding CheckVersionCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
             <Button Content="Run Diagnostics" Command="{Binding RunDiagnosticsCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
             <Button Content="Open in GameLoop" IsEnabled="False" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"
                     ToolTip="Not implemented." ToolTipService.ShowOnDisabled="True" />
             <Button Content="Restart Engine" IsEnabled="False" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"
                     ToolTip="Not implemented. This would stop a process." ToolTipService.ShowOnDisabled="True" />
-            <Button Content="Repair Market" IsEnabled="False" Style="{StaticResource Button.Secondary}"
+            <Button Content="Repair Market" IsEnabled="False" Margin="0,0,8,8" Style="{StaticResource Button.Secondary}"
                     ToolTip="Use Repair App Market on the App Market page." ToolTipService.ShowOnDisabled="True" />
-          </StackPanel>
+          </WrapPanel>
           <ItemsControl ItemsSource="{Binding Findings}" Margin="0,16,0,0">
             <ItemsControl.ItemTemplate>
               <DataTemplate>

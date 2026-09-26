@@ -1,9 +1,10 @@
+using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Navigation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GLOptimizer.App.ViewModels;
 
-public sealed class PageViewModelFactory : IPageViewModelFactory
+public sealed class PageViewModelFactory : IPageViewModelFactory, IDisposable
 {
     private readonly IServiceProvider _services;
     private readonly Dictionary<AppPage, IPageViewModel> _cache = new();
@@ -18,11 +19,7 @@ public sealed class PageViewModelFactory : IPageViewModelFactory
     {
         if (_cache.TryGetValue(page, out var existing))
         {
-            if (existing is IRefreshable refreshable)
-            {
-                refreshable.Refresh();
-            }
-
+            Refresh(existing);
             return existing;
         }
 
@@ -44,11 +41,30 @@ public sealed class PageViewModelFactory : IPageViewModelFactory
         };
 
         _cache[page] = created;
-        if (created is IRefreshable createdRefreshable)
+        Refresh(created);
+        return created;
+    }
+
+    public void Dispose()
+    {
+        foreach (var page in _cache.Values)
         {
-            createdRefreshable.Refresh();
+            if (page is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
 
-        return created;
+        _cache.Clear();
+    }
+
+    private static void Refresh(IPageViewModel page)
+    {
+        if (SmokeTest.Active || page is not IRefreshable refreshable)
+        {
+            return;
+        }
+
+        refreshable.Refresh();
     }
 }

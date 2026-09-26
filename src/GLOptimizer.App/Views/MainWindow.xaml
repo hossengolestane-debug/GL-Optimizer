@@ -159,7 +159,7 @@
             <StackPanel>
               <TextBlock Text="{Binding RecoveryMessage}" TextWrapping="Wrap" />
               <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                <Button Content="Restore priorities" Command="{Binding RestoreRecoveryCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
+                <Button Content="{Binding RecoveryAction}" Command="{Binding RestoreRecoveryCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
                 <Button Content="Dismiss" Command="{Binding DismissRecoveryCommand}" Style="{StaticResource Button.Secondary}" />
               </StackPanel>
             </StackPanel>

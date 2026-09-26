@@ -41,7 +41,7 @@
 
       <controls:SettingsRow Title="GameLoop path" Description="Used only after a known launcher file is found in that folder.">
         <controls:SettingsRow.Slot>
-          <TextBox Width="280" Text="{Binding GameLoopPathOverride, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBox MinWidth="160" MaxWidth="420" Text="{Binding GameLoopPathOverride, UpdateSourceTrigger=PropertyChanged}" />
         </controls:SettingsRow.Slot>
       </controls:SettingsRow>
 
@@ -78,11 +78,11 @@
 
       <controls:SettingsRow Title="Sample interval" Description="How often live monitoring reads CPU, memory, disk, and GameLoop. 500, 1000, or 2000 ms.">
         <controls:SettingsRow.Slot>
-          <StackPanel Orientation="Horizontal">
+          <WrapPanel Orientation="Horizontal">
             <Button Content="0.5 s" Command="{Binding SelectIntervalCommand}" CommandParameter="500" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
             <Button Content="1 s" Command="{Binding SelectIntervalCommand}" CommandParameter="1000" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
-            <Button Content="2 s" Command="{Binding SelectIntervalCommand}" CommandParameter="2000" Style="{StaticResource Button.Secondary}" />
-          </StackPanel>
+            <Button Content="2 s" Command="{Binding SelectIntervalCommand}" CommandParameter="2000" Margin="0,0,0,8" Style="{StaticResource Button.Secondary}" />
+          </WrapPanel>
         </controls:SettingsRow.Slot>
       </controls:SettingsRow>
 
@@ -92,11 +92,11 @@
         </controls:SettingsRow.Slot>
       </controls:SettingsRow>
 
-      <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+      <WrapPanel Orientation="Horizontal" Margin="0,18,0,0">
         <Button Content="Save settings" Command="{Binding SaveCommand}" Style="{StaticResource Button.Primary}" />
         <Button Content="Check for updates" Command="{Binding CheckUpdatesCommand}" Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" />
-        <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Text.Caption}" VerticalAlignment="Center" Margin="16,0,0,0" />
-      </StackPanel>
+        <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Text.Caption}" VerticalAlignment="Center" Margin="16,8,0,0" TextWrapping="Wrap" />
+      </WrapPanel>
 
       <StackPanel Margin="0,28,0,0" Visibility="{Binding ShowDeveloperTools, Converter={StaticResource BoolToVis}}">
         <TextBlock Text="Developer" Style="{StaticResource Text.Section}" />
