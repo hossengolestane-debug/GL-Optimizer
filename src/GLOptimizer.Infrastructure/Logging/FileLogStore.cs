@@ -126,7 +126,7 @@ public sealed class FileLogStore : ILogStore, IDisposable
                     return [];
                 }
 
-                var lines = File.ReadAllLines(ActiveLogFilePath);
+                var lines = ReadLinesShared(ActiveLogFilePath);
                 LastError = null;
                 return lines
                     .TakeLast(maxLines)
@@ -194,6 +194,19 @@ public sealed class FileLogStore : ILogStore, IDisposable
             File.Move(ActiveLogFilePath, target);
             return;
         }
+    }
+
+    private static string[] ReadLinesShared(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        var lines = new List<string>();
+        while (reader.ReadLine() is { } line)
+        {
+            lines.Add(line);
+        }
+
+        return lines.ToArray();
     }
 
     private void PurgeExpired()
