@@ -2,7 +2,7 @@
 
 GameLoop Performance & App Market Utility.
 
-Phase 4 is a diagnostics utility with backup and restore: a Windows desktop shell, read-only hardware and GameLoop detection, live samples, a configuration report, and confirmed restore of the files that report already found. It does not tune a game, and it does not pretend to.
+Phase 5 adds a confirmed optimization pipeline to the diagnostics shell: hardware and GameLoop detection, live samples, a configuration report, backups, and writes that change only keys already found in a parsed config file. It does not tune a running game, and it does not invent a frame rate.
 
 ## What this build does
 
@@ -15,12 +15,13 @@ Phase 4 is a diagnostics utility with backup and restore: a Windows desktop shel
 - Shows a 5-minute monochrome history and simple 90% spikes. FPS stays unavailable: there is no safe frame provider, and no number is invented.
 - Reports GameLoop configuration from verified installs only: known ini, json, and xml files, key maps, and the MobileGamePC registry key. Unrecognized settings stay **Unknown**. Discovery does not write.
 - Creates a backup of those found files under `%LocalAppData%\GLOptimizer\Backups`, with a manifest, hashes, a settings snapshot, and registry values as text. Restore shows a dry run, asks for confirmation, writes a pre-restore backup, and refuses unsafe paths and a running GameLoop.
+- Recommends Performance, Balanced, or Quality values from the hardware tier. **OPTIMIZE NOW** previews the diff, creates a Phase 4 backup, writes only existing keys, validates the read-back, and restores the backup if validation fails. Registry settings, new keys, and new files are not written. Graphics preference, process priority, power mode, background apps, and benchmark mode are Not implemented.
 - Sets the dashboard to GOOD, WARNING, or ACTION REQUIRED from those findings. GameLoop not found is WARNING. There is no version-mismatch badge in this phase.
 - Writes JSON settings to `%LocalAppData%\GLOptimizer\settings.json`.
 - Writes rolling logs to `%LocalAppData%\GLOptimizer\Logs\`.
 - Catches unhandled UI exceptions and shows a short message. The stack trace goes to the log.
 
-**OPTIMIZE NOW** stays disabled. **Close** and **Restart** are not implemented and do not kill a process. **Start** launches only a launcher file inside a verified install. App Market checks and frame metrics are still not implemented. This build does not write registry values or App Market files. It writes a GameLoop config file only when a confirmed restore targets that recorded path.
+**OPTIMIZE NOW** asks for confirmation, then runs preview, backup, apply, and validate. It is disabled when that profile has no applicable recommendation. **Close** and **Restart** are not implemented and do not kill a process. **Start** launches only a launcher file inside a verified install. App Market checks, benchmark mode, and frame metrics are still not implemented. This build does not write registry values or App Market files. It writes a GameLoop config file only for a confirmed restore or a confirmed optimization of a key that was already in that file.
 
 ## Safety
 
@@ -33,7 +34,7 @@ GL Optimizer must not:
 - patch game binaries
 - imitate GameLoop server responses
 
-Phase 4 reads install metadata, process paths, and configuration, and can restore a confirmed backup onto those same files. It does not write App Market files or registry values. See [docs/safety.md](docs/safety.md).
+Phase 5 reads install metadata, process paths, and configuration. It can restore a confirmed backup, and it can replace values that were already present after a backup and a validation check. It does not write App Market files or registry values. See [docs/safety.md](docs/safety.md).
 
 Developer tools (a debug log button and local path display) are compiled only into Debug builds (`#if DEBUG`).
 
@@ -75,7 +76,7 @@ src/
   GLOptimizer.App/             WPF shell, theme, pages, composition root
   GLOptimizer.Core/            models, results, paths, interfaces
   GLOptimizer.Infrastructure/  DI, JSON settings, rolling file log, file backup and restore
-  GLOptimizer.GameLoop/        GameLoop detection, configuration, and backup source; App Market still unimplemented
+  GLOptimizer.GameLoop/        GameLoop detection, configuration, backup source, and optimization; App Market still unimplemented
   GLOptimizer.Monitoring/      hardware detection and live sampling; FPS still unavailable
   GLOptimizer.Tests/
 installer/                     not shipped yet
@@ -98,8 +99,8 @@ Default retention is 14 days. The active log rotates after 2 MB. Both can be cha
 
 ## Phases
 
-Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). Phase 3 configuration discovery is described in [docs/phase-3.md](docs/phase-3.md). Phase 4 backup and restore is described in [docs/phase-4.md](docs/phase-4.md). On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, FPS, or GameLoop settings.
+Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). Phase 3 configuration discovery is described in [docs/phase-3.md](docs/phase-3.md). Phase 4 backup and restore is described in [docs/phase-4.md](docs/phase-4.md). Phase 5 optimization is described in [docs/phase-5.md](docs/phase-5.md). On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, FPS, or GameLoop settings.
 
-Phase 5 is the optimization engine: preview, backup, apply, validate, and restore. **OPTIMIZE NOW** stays disabled until that pipeline exists. See [docs/phase-5.md](docs/phase-5.md).
+Phase 6 is read-only COD Mobile diagnostics. See [docs/phase-6.md](docs/phase-6.md).
 
 More detail is in [docs/architecture.md](docs/architecture.md).

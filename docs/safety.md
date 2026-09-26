@@ -26,6 +26,8 @@ Phase 3 reads known GameLoop config files and `HKCU\Software\Tencent\MobileGameP
 
 Phase 4 copies files that discovery marked Found into `%LocalAppData%\GLOptimizer\Backups`. Restore can replace those same paths after a dry run and a confirmation dialog. It refuses path traversal, symlinks and other reparse points, paths outside the verified install and known user config locations, a backup copy whose hash does not match the manifest, and a restore while GameLoop is running. A pre-restore backup is taken before an overwrite. Registry values are stored as text and are not written back. Delete removes only a folder directly under the Backups root.
 
-App Market files are still not opened. **OPTIMIZE NOW** cannot run. The next change to a setting is the Phase 5 preview, backup, apply, validate, and restore pipeline.
+Phase 5 may replace a value only when that key was already found in a parsed, non-unreadable file and the current value is valid. It does not add keys, create files, or write the registry. It refuses to write while GameLoop is running. It creates a Phase 4 backup first and restores that backup if the read-back does not match. Graphics preference, process priority, power mode, background apps, and benchmark mode are not changed.
+
+App Market files are still not opened. **Close** and **Restart** still do not kill a process.
 
 Developer mode is a debug-build switch. It can write a local debug log line. It cannot enable hidden actions in a Release build.

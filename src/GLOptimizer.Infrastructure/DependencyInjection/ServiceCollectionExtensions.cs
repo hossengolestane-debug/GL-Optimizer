@@ -1,11 +1,12 @@
 using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Optimization;
 using GLOptimizer.Infrastructure.Backup;
+using GLOptimizer.Infrastructure.Optimization;
 using GLOptimizer.Infrastructure.Logging;
 using GLOptimizer.Infrastructure.Navigation;
 using GLOptimizer.Infrastructure.Settings;
-using GLOptimizer.Infrastructure.Stubs;
 using GLOptimizer.Infrastructure.Time;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,7 +28,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILogStore, FileLogStore>();
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IBackupService, FileBackupService>();
-        services.AddSingleton<IOptimizationService, NotImplementedOptimizationService>();
+        services.AddSingleton<IConfigFileWriter, AtomicConfigFileWriter>();
+        services.AddSingleton<IOptimizationRecordStore, JsonOptimizationRecordStore>();
+        services.AddSingleton<IHostOptimizationProbe, NotImplementedHostOptimizationProbe>();
+        services.AddSingleton<IBenchmarkService, NotImplementedBenchmarkService>();
+        services.AddSingleton<OptimizationProfileSelection>();
 
         services.AddLogging(builder =>
         {

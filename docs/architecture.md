@@ -5,9 +5,9 @@ The Windows UI sits on class libraries that build on Windows, Linux, and macOS.
 ## Projects
 
 - **GLOptimizer.Core** has no NuGet dependencies. It owns `OperationResult`, path and version rules, the hardware report builder, diagnostic state, settings rules, log line formatting, the page catalog, and the service interfaces.
-- **GLOptimizer.Infrastructure** is the composition helper for JSON settings, the rolling file log, navigation state, file backups, and the optimization stub.
+- **GLOptimizer.Infrastructure** is the composition helper for JSON settings, the rolling file log, navigation state, file backups, and the optimization record.
 - **GLOptimizer.Monitoring** queries hardware through `WindowsHardwareProbe` and maps that snapshot in `HardwareDetector`. `PerformanceSampler` reads CPU, RAM, disk, and GPU on a timer while the dashboard or Monitoring page is active. Frame metrics stay unimplemented.
-- **GLOptimizer.GameLoop** searches for installs in `GameLoopDetector` and reads configuration in `GameLoopConfigDiscovery`. `GameLoopBackupSource` turns that report into the file list a backup may copy. `GameLoopLauncher` can start a verified executable. Close and restart return not implemented. App Market checks stay unimplemented.
+- **GLOptimizer.GameLoop** searches for installs in `GameLoopDetector` and reads configuration in `GameLoopConfigDiscovery`. `GameLoopBackupSource` turns that report into the file list a backup may copy. `OptimizationEngine` previews and applies changes to keys that report already parsed. `GameLoopLauncher` can start a verified executable. Close and restart return not implemented. App Market checks stay unimplemented.
 - **GLOptimizer.App** is the WPF composition root. `AppHost` builds the `ServiceProvider`, loads settings, then shows `MainWindow`. Page view models are created by `PageViewModelFactory`. Scans are async and cancellable. Code-behind is limited to window chrome, the work-area maximize hook, and the error dialog.
 
 Windows-only APIs live behind `OperatingSystem.IsWindows()` and `[SupportedOSPlatform("windows")]`. Tests use fixture environments and never attach to a real GameLoop install.
@@ -33,6 +33,8 @@ Services return `OperationResult` or `OperationResult<T>`.
 `GameLoopConfigDiscovery` checks a fixed list of config, key-map, and registry locations for those verified roots. It parses only small text files and only published keys. Null settings stay Unknown. It does not write.
 
 `FileBackupService` copies only files that source marked present and that sit under a verified install or a known user config directory. Restore writes those recorded paths after a dry run, a hash check, a pre-restore backup, and confirmation. It refuses traversal, reparse points, and a running GameLoop. Registry values in the manifest stay text.
+
+`OptimizationRules` classifies hardware and recommends values without writing. `ConfigTextEditor` replaces one value in ini, json, or xml and leaves the rest of the file in place. `OptimizationEngine` backs up with `FileBackupService`, writes through a temp file, re-reads the keys, and restores the backup when validation fails.
 
 ## Logging
 

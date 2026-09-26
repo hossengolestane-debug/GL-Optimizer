@@ -15,6 +15,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ILogStore _log;
     private readonly IMonitoringCoordinator _monitoring;
     private bool _persistSidebar;
+    private bool _showingPage;
 
     public MainViewModel(
         INavigationService navigation,
@@ -38,6 +39,13 @@ public partial class MainViewModel : ObservableObject
             .ToList();
         IsSidebarCollapsed = settings.Current.SidebarCollapsed;
         _persistSidebar = true;
+        _navigation.CurrentChanged += (_, page) =>
+        {
+            if (!_showingPage)
+            {
+                Show(page);
+            }
+        };
         Navigate(AppPage.Dashboard);
     }
 
@@ -58,7 +66,20 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Navigate(AppPage page)
     {
-        _navigation.Navigate(page);
+        _showingPage = true;
+        try
+        {
+            _navigation.Navigate(page);
+            Show(page);
+        }
+        finally
+        {
+            _showingPage = false;
+        }
+    }
+
+    private void Show(AppPage page)
+    {
         _monitoring.SetPage(page);
         CurrentViewModel = _pages.Create(page);
         foreach (var item in Sections.SelectMany(section => section.Items))

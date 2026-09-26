@@ -1,14 +1,19 @@
-using GLOptimizer.Core.Models;
+using GLOptimizer.Core.Backup;
+using GLOptimizer.Core.Optimization;
 using GLOptimizer.Core.Results;
 
 namespace GLOptimizer.Core.Abstractions;
 
 /// <summary>
-/// Future optimization actions. Phase 0 must not change priorities, registry values, or game files.
+/// Previews and applies GameLoop configuration changes. Selecting a profile does not write.
 /// </summary>
 public interface IOptimizationService
 {
-    OperationResult<IReadOnlyList<OptimizationAction>> ListActions();
+    Task<OperationResult<OptimizationAnalysis>> AnalyzeAsync(OptimizationProfile profile, CancellationToken cancellationToken = default);
 
-    OperationResult Apply(string actionId);
+    Task<OperationResult<OptimizationPreview>> PreviewAsync(OptimizationProfile profile, CancellationToken cancellationToken = default);
+
+    Task<OperationResult<OptimizationReport>> ApplyAsync(OptimizationProfile profile, bool confirmed, CancellationToken cancellationToken = default);
+
+    Task<OperationResult<RestoreReport>> UndoLastAsync(bool confirmed, CancellationToken cancellationToken = default);
 }

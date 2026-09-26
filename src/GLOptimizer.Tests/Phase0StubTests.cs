@@ -1,4 +1,5 @@
 using GLOptimizer.Core.Abstractions;
+using GLOptimizer.Core.Optimization;
 using GLOptimizer.Core.Results;
 using GLOptimizer.GameLoop;
 using GLOptimizer.Infrastructure.DependencyInjection;
@@ -34,8 +35,7 @@ public class Phase0StubTests
         var backups = provider.GetRequiredService<IBackupService>();
         var listed = backups.List();
         var optimization = provider.GetRequiredService<IOptimizationService>();
-        var actions = optimization.ListActions();
-        var applied = optimization.Apply("noop");
+        var analysis = await optimization.AnalyzeAsync(OptimizationProfile.Balanced);
 
         Assert.Equal(OperationStatus.Success, hardware.Status);
         Assert.NotNull(hardware.Value);
@@ -46,22 +46,13 @@ public class Phase0StubTests
         Assert.NotNull(config.Value);
         AssertNotImplemented(frames);
         AssertNotImplemented(market);
-        AssertNotImplemented(actions);
         Assert.Equal(OperationStatus.Success, listed.Status);
         Assert.NotNull(listed.Value);
-        Assert.Equal(OperationStatus.NotImplemented, applied.Status);
+        Assert.Equal(OperationStatus.Success, analysis.Status);
+        Assert.NotNull(analysis.Value);
         Assert.Null(frames.Value);
         Assert.Null(market.Value);
-        Assert.Null(actions.Value);
         Assert.Equal(before, Snapshot(temp.Root));
-    }
-
-    [Fact]
-    public void Optimization_stub_rejects_blank_ids()
-    {
-        var optimization = new GLOptimizer.Infrastructure.Stubs.NotImplementedOptimizationService();
-
-        Assert.Throws<ArgumentException>(() => optimization.Apply(" "));
     }
 
     private static HashSet<string> Snapshot(string root)

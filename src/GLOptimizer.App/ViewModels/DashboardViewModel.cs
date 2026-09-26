@@ -9,6 +9,7 @@ using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Models;
 using GLOptimizer.Core.Monitoring;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Optimization;
 using GLOptimizer.Core.Results;
 
 namespace GLOptimizer.App.ViewModels;
@@ -19,6 +20,9 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
     private readonly IGameLoopDetector _gameLoop;
     private readonly ILogStore _log;
     private readonly IMonitoringCoordinator _monitoring;
+    private readonly IOptimizationService _optimization;
+    private readonly INavigationService _navigation;
+    private readonly OptimizationProfileSelection _profile;
     private readonly SynchronizationContext? _ui = SynchronizationContext.Current;
     private readonly ScanSession _session = new();
     private HardwareReport? _hardwareReport;
@@ -29,13 +33,19 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         IHardwareService hardware,
         IGameLoopDetector gameLoop,
         ILogStore log,
-        IMonitoringCoordinator monitoring)
+        IMonitoringCoordinator monitoring,
+        IOptimizationService optimization,
+        INavigationService navigation,
+        OptimizationProfileSelection profile)
         : base(AppPage.Dashboard)
     {
         _hardware = hardware;
         _gameLoop = gameLoop;
         _log = log;
         _monitoring = monitoring;
+        _optimization = optimization;
+        _navigation = navigation;
+        _profile = profile;
         _monitoring.Updated += OnMonitoringUpdated;
     }
 
@@ -83,13 +93,24 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
     [ObservableProperty]
     private bool _isScanning;
 
+    [ObservableProperty]
+    private bool _canOptimizeNow;
+
+    [ObservableProperty]
+    private string _optimizeHint = "Scan to look for applicable recommendations.";
+
+    partial void OnIsScanningChanged(bool value) => OptimizeNowCommand.NotifyCanExecuteChanged();
+
+    partial void OnCanOptimizeNowChanged(bool value) => OptimizeNowCommand.NotifyCanExecuteChanged();
+
     [RelayCommand(CanExecute = nameof(CanOptimize))]
     private void OptimizeNow()
     {
-        _log.Write(LogSeverity.Warning, "Optimize", "OPTIMIZE NOW was invoked, but optimization is not implemented.");
+        _log.Write(LogSeverity.Information, "Optimize", "OPTIMIZE NOW opened the Optimize page.");
+        _navigation.Navigate(AppPage.Optimize);
     }
 
-    private static bool CanOptimize() => false;
+    private bool CanOptimize() => CanOptimizeNow && !IsScanning;
 
     [RelayCommand]
     private Task ScanAsync() => RunScanAsync();
@@ -115,6 +136,12 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
             }
 
             Apply(hardwareTask.Result, gameTask.Result);
+            if (!_session.IsCurrent(generation))
+            {
+                return;
+            }
+
+            await RefreshOptimizeAsync(generation, token);
         }
         catch (Exception ex)
         {
@@ -133,6 +160,28 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
                 IsScanning = false;
             }
         }
+    }
+
+    private async Task RefreshOptimizeAsync(int generation, CancellationToken token)
+    {
+        var analysis = await _optimization.AnalyzeAsync(_profile.Current, token);
+        if (!_session.IsCurrent(generation))
+        {
+            return;
+        }
+
+        if (!analysis.Succeeded || analysis.Value is null)
+        {
+            CanOptimizeNow = false;
+            OptimizeHint = analysis.Error ?? "Optimization could not be analyzed.";
+            return;
+        }
+
+        var applicable = analysis.Value.Recommendations.Count(item => item.Status == RecommendationStatus.Applicable);
+        CanOptimizeNow = applicable > 0;
+        OptimizeHint = applicable > 0
+            ? applicable.ToString(CultureInfo.InvariantCulture) + " applicable recommendation(s) for " + _profile.Current + ". Opens the Optimize page."
+            : "No applicable recommendation for the " + _profile.Current + " profile.";
     }
 
     private void Apply(

@@ -5,7 +5,7 @@ namespace GLOptimizer.Core;
 public static class BuildInfo
 {
     public const string ProductName = "GL Optimizer";
-    public const string PhaseName = "Phase 4";
+    public const string PhaseName = "Phase 5";
 
     public static string Version
     {

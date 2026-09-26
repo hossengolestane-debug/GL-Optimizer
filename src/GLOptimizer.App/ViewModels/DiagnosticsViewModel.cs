@@ -90,7 +90,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
                 Rows.Add(new DiagnosticRowModel("Frame metrics", Phase0Notices.NoFrameMetrics, "Unavailable", StatusKind.Unavailable));
             }
             Add("App Market", _market.Check());
-            Add("Optimization", _optimization.ListActions());
+            await AddOptimizationAsync(token);
             AddBackups(_backups.List());
         }
         catch (Exception ex)
@@ -220,6 +220,23 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
                 + missing.ToString(System.Globalization.CultureInfo.InvariantCulture) + " not found.",
             present > 0 ? "Reported" : "Unknown",
             present > 0 ? StatusKind.Ready : StatusKind.Unavailable));
+    }
+
+    private async Task AddOptimizationAsync(CancellationToken token)
+    {
+        var analysis = await _optimization.AnalyzeAsync(GLOptimizer.Core.Optimization.OptimizationProfile.Balanced, token);
+        if (!analysis.Succeeded || analysis.Value is null)
+        {
+            Rows.Add(new DiagnosticRowModel("Optimization", analysis.Error ?? "Optimization could not be analyzed.", "Needs attention", StatusKind.Attention));
+            return;
+        }
+
+        var applicable = analysis.Value.Recommendations.Count(item => item.Status == GLOptimizer.Core.Optimization.RecommendationStatus.Applicable);
+        Rows.Add(new DiagnosticRowModel(
+            "Optimization",
+            applicable.ToString(System.Globalization.CultureInfo.InvariantCulture) + " applicable recommendation(s). Hardware tier: " + analysis.Value.Tier + ".",
+            applicable > 0 ? "Ready" : "Reported",
+            applicable > 0 ? StatusKind.Ready : StatusKind.Neutral));
     }
 
     private void AddBackups(OperationResult<IReadOnlyList<GLOptimizer.Core.Models.BackupRecord>> result)

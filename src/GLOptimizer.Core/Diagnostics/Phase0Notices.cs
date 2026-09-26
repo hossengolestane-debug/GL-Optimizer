@@ -15,7 +15,7 @@ public static class Phase0Notices
         "FPS monitoring unavailable with current safe monitoring method.";
 
     public const string NoOptimization =
-        "Optimization actions are not available in this phase.";
+        "OPTIMIZE NOW writes only keys already found in a parsed config file, and only after a backup. Registry values are not written. Close GameLoop first.";
 
     public const string BackupSafety =
         "Backups copy discovered GameLoop configuration into local app data. Restore replaces only the recorded paths after a dry run and confirmation, and only when GameLoop is not running. Registry values are stored as text and are not written back.";

@@ -6,8 +6,8 @@ public static class PageCatalog
 {
     public static IReadOnlyList<PageInfo> All { get; } =
     [
-        new(AppPage.Dashboard, "Dashboard", "Overview", "Read-only hardware and GameLoop status. Optimization is not active."),
-        new(AppPage.Optimize, "Optimize", "Performance", "Optimization actions are not available in this phase."),
+        new(AppPage.Dashboard, "Dashboard", "Overview", "Hardware and GameLoop status. OPTIMIZE NOW opens Optimize when a recommendation can be applied."),
+        new(AppPage.Optimize, "Optimize", "Performance", "Preview a profile, then apply it to keys that were already found. Registry values are not written."),
         new(AppPage.Monitoring, "Monitoring", "Performance", "Live CPU, memory, disk, and GameLoop samples. FPS is not collected."),
         new(AppPage.GameLoop, "GameLoop", "GameLoop", "Read-only detection and configuration report. Config files are not modified."),
         new(AppPage.AppMarket, "App Market", "GameLoop", "Diagnostics are not implemented. This build does not read or modify App Market files."),

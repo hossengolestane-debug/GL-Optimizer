@@ -7,21 +7,91 @@
   <ScrollViewer Style="{StaticResource Scroll.Page}">
     <StackPanel>
       <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
-      <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,20" />
-      <controls:ProgressPanel Title="{Binding PanelTitle}" Message="{Binding PanelMessage}" Progress="{Binding Progress}" />
+      <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
+      <TextBlock Text="{Binding TierText}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" />
+      <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Text.Caption}" Margin="0,6,0,0" TextWrapping="Wrap" />
+
+      <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+        <ComboBox Width="180" VerticalAlignment="Center"
+                  ItemsSource="{Binding Profiles}"
+                  SelectedItem="{Binding SelectedProfile}" />
+        <Button Content="PREVIEW CHANGES" Margin="12,0,0,0" Style="{StaticResource Button.Secondary}"
+                Command="{Binding PreviewCommand}" />
+        <Button Content="OPTIMIZE NOW" Margin="8,0,0,0" Style="{StaticResource Button.Primary}"
+                Command="{Binding OptimizeNowCommand}" />
+        <Button Content="Undo last" Margin="8,0,0,0" Style="{StaticResource Button.Secondary}"
+                Command="{Binding UndoLastCommand}" />
+      </StackPanel>
+
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
         <StackPanel>
-          <TextBlock Text="Actions" Style="{StaticResource Text.Section}" />
-          <TextBlock Text="{Binding ActionsMessage}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,16" />
-          <Button Content="Run selected action" HorizontalAlignment="Left"
-                  Command="{Binding RunCommand}"
-                  Style="{StaticResource Button.Primary}"
-                  ToolTip="Optimization is not available in this phase."
-                  ToolTipService.ShowOnDisabled="True" />
+          <Grid Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="130" />
+              <ColumnDefinition Width="110" />
+              <ColumnDefinition Width="130" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="70" />
+              <ColumnDefinition Width="70" />
+              <ColumnDefinition Width="80" />
+              <ColumnDefinition Width="120" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Setting" Style="{StaticResource Text.Caption}" />
+            <TextBlock Grid.Column="1" Text="Current" Style="{StaticResource Text.Caption}" />
+            <TextBlock Grid.Column="2" Text="Recommended" Style="{StaticResource Text.Caption}" />
+            <TextBlock Grid.Column="3" Text="Reason" Style="{StaticResource Text.Caption}" />
+            <TextBlock Grid.Column="4" Text="Risk" Style="{StaticResource Text.Caption}" />
+            <TextBlock Grid.Column="5" Text="Restart" Style="{StaticResource Text.Caption}" />
+            <TextBlock Grid.Column="6" Text="Reversible" Style="{StaticResource Text.Caption}" />
+            <TextBlock Grid.Column="7" Text="Status" Style="{StaticResource Text.Caption}" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Recommendations}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,8,0,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="70" />
+                    <ColumnDefinition Width="70" />
+                    <ColumnDefinition Width="80" />
+                    <ColumnDefinition Width="120" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="{Binding Setting}" TextWrapping="Wrap" />
+                  <TextBlock Grid.Column="1" Text="{Binding Current}" TextWrapping="Wrap" />
+                  <TextBlock Grid.Column="2" Text="{Binding Recommended}" TextWrapping="Wrap" />
+                  <TextBlock Grid.Column="3" Text="{Binding Reason}" TextWrapping="Wrap" Style="{StaticResource Text.Caption}" />
+                  <TextBlock Grid.Column="4" Text="{Binding Risk}" />
+                  <TextBlock Grid.Column="5" Text="{Binding Restart}" />
+                  <TextBlock Grid.Column="6" Text="{Binding Reversible}" />
+                  <TextBlock Grid.Column="7" Text="{Binding Status}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
       </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding HasPreview, Converter={StaticResource BoolToVis}}">
+        <StackPanel>
+          <TextBlock Text="Preview" Style="{StaticResource Text.Section}" />
+          <ItemsControl ItemsSource="{Binding PreviewRows}" Margin="0,8,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <controls:DiagnosticRow Title="{Binding Title}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" Kind="{Binding BadgeKind}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
-        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" />
+        <TextBlock Text="{Binding BenchmarkMessage}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
+      </Border>
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
       </Border>
     </StackPanel>
   </ScrollViewer>
