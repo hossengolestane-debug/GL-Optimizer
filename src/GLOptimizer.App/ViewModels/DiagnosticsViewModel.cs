@@ -71,7 +71,15 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
 
             AddHardware(hardwareTask.Result);
             AddScan(gameTask.Result);
-            Add("Frame metrics", _frames.TryGetLatest());
+            var frames = _frames.TryGetLatest();
+            if (frames.Succeeded && frames.Value?.FramesPerSecond is double fps && !double.IsNaN(fps) && !double.IsInfinity(fps) && fps >= 0)
+            {
+                Add("Frame metrics", frames);
+            }
+            else
+            {
+                Rows.Add(new DiagnosticRowModel("Frame metrics", Phase0Notices.NoFrameMetrics, "Unavailable", StatusKind.Unavailable));
+            }
             Add("App Market", _market.Check());
             Add("Optimization", _optimization.ListActions());
             Add("Backups", _backups.List());

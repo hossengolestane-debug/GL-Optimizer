@@ -2,7 +2,7 @@
 
 GameLoop Performance & App Market Utility.
 
-Phase 1 is a diagnostics utility: a Windows desktop shell plus read-only hardware and GameLoop detection. It does not tune a game, and it does not pretend to.
+Phase 2 is a diagnostics utility: a Windows desktop shell, read-only hardware and GameLoop detection, and live CPU, memory, disk, and GameLoop samples. It does not tune a game, and it does not pretend to.
 
 ## What this build does
 
@@ -11,6 +11,8 @@ Phase 1 is a diagnostics utility: a Windows desktop shell plus read-only hardwar
 - Shows hardware that Windows actually returned. Missing CPU, GPU, memory, storage, or refresh fields stay **Unknown**.
 - Searches for GameLoop without assuming one install path. A directory counts only when a known launcher file is present. Version and engine stay empty unless they were read.
 - Shows PUBG Mobile and COD Mobile as Installed, Not found, or Unknown. Versions come only from unambiguous local version files.
+- Samples CPU, GPU (when the Windows counter exists), RAM, disk activity, and GameLoop process CPU, RAM, and state while the dashboard or Monitoring page is open. The interval is 500, 1000, or 2000 ms. Other pages do not keep the timer running.
+- Shows a 5-minute monochrome history and simple 90% spikes. FPS stays unavailable: there is no safe frame provider, and no number is invented.
 - Sets the dashboard to GOOD, WARNING, or ACTION REQUIRED from those findings. GameLoop not found is WARNING. There is no version-mismatch badge in this phase.
 - Writes JSON settings to `%LocalAppData%\GLOptimizer\settings.json`.
 - Writes rolling logs to `%LocalAppData%\GLOptimizer\Logs\`.
@@ -72,7 +74,7 @@ src/
   GLOptimizer.Core/            models, results, paths, interfaces
   GLOptimizer.Infrastructure/  DI, JSON settings, rolling file log
   GLOptimizer.GameLoop/        read-only GameLoop detection; App Market still unimplemented
-  GLOptimizer.Monitoring/      read-only hardware detection; frame metrics still unimplemented
+  GLOptimizer.Monitoring/      hardware detection and live sampling; FPS still unavailable
   GLOptimizer.Tests/
 installer/                     not shipped yet
 assets/                        monochrome mark
@@ -91,10 +93,10 @@ Settings and logs:
 
 Default retention is 14 days. The active log rotates after 2 MB. Both can be changed on the Settings page (1–90 days, 1–50 MB).
 
-## Phase 1 and Phase 2
+## Phases
 
-Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). On Linux and macOS the solution compiles and the tests run, but WMI, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, or memory numbers.
+Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, or FPS numbers.
 
-Phase 2 is the next slice: confirmed backups, still-read-only App Market checks, frame metrics that do not inject, and a Windows UI pass. **OPTIMIZE NOW** stays disabled until each action is a reviewed change. See [docs/phase-2.md](docs/phase-2.md).
+Phase 3 is read-only GameLoop configuration discovery. **OPTIMIZE NOW** stays disabled. See [docs/phase-3.md](docs/phase-3.md).
 
 More detail is in [docs/architecture.md](docs/architecture.md).

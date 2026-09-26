@@ -7,6 +7,7 @@ using GLOptimizer.Core.Detection;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Models;
+using GLOptimizer.Core.Monitoring;
 using GLOptimizer.Core.Navigation;
 using GLOptimizer.Core.Results;
 
@@ -15,29 +16,40 @@ namespace GLOptimizer.App.ViewModels;
 public partial class DashboardViewModel : PageViewModel, IRefreshable
 {
     private readonly IHardwareService _hardware;
-    private readonly IFrameMetricsProvider _frames;
     private readonly IGameLoopDetector _gameLoop;
     private readonly ILogStore _log;
+    private readonly IMonitoringCoordinator _monitoring;
+    private readonly SynchronizationContext? _ui = SynchronizationContext.Current;
     private readonly ScanSession _session = new();
+    private HardwareReport? _hardwareReport;
+    private bool _hardwareOk;
+    private string _hardwareError = "Hardware could not be read.";
 
     public DashboardViewModel(
         IHardwareService hardware,
-        IFrameMetricsProvider frames,
         IGameLoopDetector gameLoop,
-        ILogStore log)
+        ILogStore log,
+        IMonitoringCoordinator monitoring)
         : base(AppPage.Dashboard)
     {
         _hardware = hardware;
-        _frames = frames;
         _gameLoop = gameLoop;
         _log = log;
+        _monitoring = monitoring;
+        _monitoring.Updated += OnMonitoringUpdated;
     }
 
     public string SafetyNote => Phase0Notices.Safety;
 
     public string LogPath => _log.ActiveLogFilePath;
 
-    public ObservableCollection<DashboardCard> Cards { get; } = new();
+    public ObservableCollection<MetricTile> Cards { get; } =
+    [
+        new("CPU"),
+        new("GPU"),
+        new("RAM"),
+        new("Disk")
+    ];
 
     public ObservableCollection<ActivityRow> Activity { get; } = new();
 
@@ -51,9 +63,9 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
 
     public bool HasInstalls => Installs.Count > 0;
 
-    public string ChartTitle => "Performance";
+    public string ChartTitle => "Frame time";
 
-    public string ChartSubtitle => "No capture is running.";
+    public string ChartSubtitle => "FPS is not collected.";
 
     public string ChartEmptyMessage => Phase0Notices.NoFrameMetrics;
 
@@ -96,14 +108,13 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
             StatusLine = "Scanning…";
             var hardwareTask = _hardware.GetReportAsync(token);
             var gameTask = _gameLoop.DetectAsync(token);
-            var frames = _frames.TryGetLatest();
             await Task.WhenAll(hardwareTask, gameTask);
             if (!_session.IsCurrent(generation))
             {
                 return;
             }
 
-            Apply(hardwareTask.Result, gameTask.Result, frames);
+            Apply(hardwareTask.Result, gameTask.Result);
         }
         catch (Exception ex)
         {
@@ -126,8 +137,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
 
     private void Apply(
         OperationResult<HardwareReport> hardware,
-        OperationResult<GameLoopScan> scan,
-        OperationResult<FrameSample> frames)
+        OperationResult<GameLoopScan> scan)
     {
         var report = hardware.Succeeded ? hardware.Value : null;
         var found = scan.Succeeded ? scan.Value : null;
@@ -140,34 +150,11 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
                 : found.Installations.Count.ToString(CultureInfo.InvariantCulture) + " GameLoop installation(s) found."
             : scan.Error ?? "GameLoop could not be scanned.";
 
+        _hardwareReport = report;
+        _hardwareOk = hardware.Succeeded;
+        _hardwareError = hardware.Error ?? "Hardware could not be read.";
         var gameLoopStatus = DetectionText.ForGameLoop(found, !scan.Succeeded);
-        Cards.Clear();
-        Cards.Add(new DashboardCard(
-            "CPU",
-            HardwareText.Text(report?.CpuName),
-            hardware.Succeeded ? "Reported by this PC." : hardware.Error ?? "Hardware could not be read.",
-            hardware.Succeeded && !string.IsNullOrWhiteSpace(report?.CpuName) ? "Reported" : "Unknown",
-            hardware.Succeeded && !string.IsNullOrWhiteSpace(report?.CpuName) ? StatusKind.Ready : StatusKind.Unavailable));
-        Cards.Add(new DashboardCard(
-            "Memory",
-            HardwareText.Memory(report?.TotalMemoryBytes),
-            hardware.Succeeded ? "Total physical memory." : hardware.Error ?? "Hardware could not be read.",
-            report?.TotalMemoryBytes is > 0 ? "Reported" : "Unknown",
-            report?.TotalMemoryBytes is > 0 ? StatusKind.Ready : StatusKind.Unavailable));
-        Cards.Add(new DashboardCard(
-            "GameLoop",
-            found?.Installations.Count > 0
-                ? HardwareText.Text(found.Installations[0].Version)
-                : gameLoopStatus.Badge,
-            StatusLine,
-            gameLoopStatus.Badge,
-            gameLoopStatus.Kind));
-        Cards.Add(new DashboardCard(
-            "Frame metrics",
-            ReportedValue.FramesPerSecond(frames),
-            Phase0Notices.NoFrameMetrics,
-            StatusMapping.Badge(frames.Status),
-            StatusMapping.From(frames.Status)));
+        RenderCards();
 
         HardwareRows.Clear();
         AddHardware(report);
@@ -207,6 +194,58 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         OnPropertyChanged(nameof(HasInstalls));
         _log.Write(LogSeverity.Information, "Scan", OverallText + ". " + StatusLine);
         ReloadActivity();
+    }
+
+    private void OnMonitoringUpdated(object? sender, EventArgs e)
+    {
+        if (_ui is null)
+        {
+            RenderCards();
+            return;
+        }
+
+        _ui.Post(_ => RenderCards(), null);
+    }
+
+    private void RenderCards()
+    {
+        var live = _monitoring.IsRunning ? _monitoring.Latest : null;
+        var cpuName = HardwareText.Text(_hardwareReport?.CpuName);
+        var gpuName = HardwareText.Text(_hardwareReport?.GpuName);
+        if (live is null)
+        {
+            Cards[0].Set(
+                cpuName,
+                _hardwareOk ? "Reported by this PC." : _hardwareError,
+                _hardwareReport?.CpuName is null ? "Unknown" : "Reported",
+                _hardwareReport?.CpuName is null ? StatusKind.Unavailable : StatusKind.Ready);
+            Cards[1].Set(
+                gpuName,
+                _hardwareReport?.GpuName is null ? "GPU was not reported." : "Reported by this PC.",
+                _hardwareReport?.GpuName is null ? "Unknown" : "Reported",
+                _hardwareReport?.GpuName is null ? StatusKind.Unavailable : StatusKind.Ready);
+            Cards[2].Set(
+                HardwareText.Memory(_hardwareReport?.TotalMemoryBytes),
+                "Total physical memory.",
+                _hardwareReport?.TotalMemoryBytes is > 0 ? "Reported" : "Unknown",
+                _hardwareReport?.TotalMemoryBytes is > 0 ? StatusKind.Ready : StatusKind.Unavailable);
+            Cards[3].Set(
+                HardwareText.Text(_hardwareReport?.StorageType),
+                "Storage type. Disk activity is sampled only while monitoring is running.",
+                _hardwareReport?.StorageType is null ? "Unknown" : "Reported",
+                _hardwareReport?.StorageType is null ? StatusKind.Unavailable : StatusKind.Ready);
+            return;
+        }
+
+        Cards[0].Set(MetricText.Percent(live.CpuPercent), cpuName, live.CpuPercent is null ? "Unknown" : "Live", live.CpuPercent is null ? StatusKind.Unavailable : StatusKind.Ready);
+        var gpuDetail = live.GpuVramUsedBytes is null ? gpuName : "VRAM " + MetricText.Bytes(live.GpuVramUsedBytes);
+        Cards[1].Set(MetricText.Percent(live.GpuPercent), gpuDetail, live.GpuPercent is null ? "Unknown" : "Live", live.GpuPercent is null ? StatusKind.Unavailable : StatusKind.Ready);
+        Cards[2].Set(
+            MetricText.RamPair(live.RamUsedBytes, live.RamTotalBytes),
+            MetricText.Percent(live.RamPercent) + " used",
+            live.RamPercent is null ? "Unknown" : "Live",
+            live.RamPercent is null ? StatusKind.Unavailable : StatusKind.Ready);
+        Cards[3].Set(MetricText.Percent(live.DiskPercent), "Disk activity", live.DiskPercent is null ? "Unknown" : "Live", live.DiskPercent is null ? StatusKind.Unavailable : StatusKind.Ready);
     }
 
     private void AddHardware(HardwareReport? report)

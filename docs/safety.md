@@ -20,7 +20,9 @@ Phase 1 adds read-only detection:
 - **Start** calls `Process.Start` on a launcher path that `InstallPathRules` has placed inside the verified install root. It does not start `aow_exe.exe`.
 - **Close** and **Restart** return not implemented. This phase does not call `Process.Kill` or any other force-close.
 
-App Market files are still not opened. Backup and restore are still not implemented. Frame metrics are still not collected. **OPTIMIZE NOW** cannot run.
+Phase 2 adds a timer for CPU, memory, disk, GPU (when Windows exposes the counters), and GameLoop process CPU and memory. The timer runs only while the dashboard or Monitoring page is sampling. It does not inject, read game memory, or invent FPS. The frame provider still returns no sample, and the UI says FPS monitoring is unavailable with the current safe method.
+
+App Market files are still not opened. Backup and restore are still not implemented. **OPTIMIZE NOW** cannot run. GameLoop config files are still not written.
 
 A future backup feature must copy only files the user chose, and restore only after a confirmation. It must not silently rewrite a game install.
 

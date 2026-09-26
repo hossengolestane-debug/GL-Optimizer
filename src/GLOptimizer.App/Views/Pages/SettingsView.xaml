@@ -40,6 +40,16 @@
         </controls:SettingsRow.Slot>
       </controls:SettingsRow>
 
+      <controls:SettingsRow Title="Sample interval" Description="How often live monitoring reads CPU, memory, disk, and GameLoop. 500, 1000, or 2000 ms.">
+        <controls:SettingsRow.Slot>
+          <StackPanel Orientation="Horizontal">
+            <Button Content="0.5 s" Command="{Binding SelectIntervalCommand}" CommandParameter="500" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+            <Button Content="1 s" Command="{Binding SelectIntervalCommand}" CommandParameter="1000" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+            <Button Content="2 s" Command="{Binding SelectIntervalCommand}" CommandParameter="2000" Style="{StaticResource Button.Secondary}" />
+          </StackPanel>
+        </controls:SettingsRow.Slot>
+      </controls:SettingsRow>
+
       <controls:SettingsRow Title="Log file size" Description="Active log size in megabytes before rotation. Range 1–50.">
         <controls:SettingsRow.Slot>
           <TextBox Width="88" Text="{Binding MaxLogMegabytesText, UpdateSourceTrigger=PropertyChanged}" />

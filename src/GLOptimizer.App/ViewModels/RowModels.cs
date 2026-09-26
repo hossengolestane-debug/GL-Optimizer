@@ -1,4 +1,5 @@
 using System.Globalization;
+using CommunityToolkit.Mvvm.ComponentModel;
 using GLOptimizer.Core.Detection;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Models;
@@ -6,6 +7,33 @@ using GLOptimizer.Core.Models;
 namespace GLOptimizer.App.ViewModels;
 
 public sealed record DashboardCard(string Title, string Value, string Detail, string BadgeText, StatusKind BadgeKind);
+
+public partial class MetricTile : ObservableObject
+{
+    public MetricTile(string title) => Title = title;
+
+    public string Title { get; }
+
+    [ObservableProperty]
+    private string _value = "Unknown";
+
+    [ObservableProperty]
+    private string _detail = string.Empty;
+
+    [ObservableProperty]
+    private string _badgeText = "Unknown";
+
+    [ObservableProperty]
+    private StatusKind _badgeKind = StatusKind.Unavailable;
+
+    public void Set(string value, string detail, string badgeText, StatusKind badgeKind)
+    {
+        Value = value;
+        Detail = detail;
+        BadgeText = badgeText;
+        BadgeKind = badgeKind;
+    }
+}
 
 public sealed record ActivityRow(string Time, string Title, string Detail);
 

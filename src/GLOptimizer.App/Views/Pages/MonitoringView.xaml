@@ -16,21 +16,74 @@
           <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
           <TextBlock Text="{Binding StatusLine}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" />
         </StackPanel>
-        <Button Grid.Column="1" Content="Cancel" VerticalAlignment="Top" Command="{Binding CancelScanCommand}" Style="{StaticResource Button.Secondary}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+          <Button Content="Start" Command="{Binding StartCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="Stop" Command="{Binding StopCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="0.5 s" Command="{Binding UseIntervalCommand}" CommandParameter="500" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="1 s" Command="{Binding UseIntervalCommand}" CommandParameter="1000" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="2 s" Command="{Binding UseIntervalCommand}" CommandParameter="2000" Style="{StaticResource Button.Secondary}" />
+        </StackPanel>
       </Grid>
-      <ItemsControl ItemsSource="{Binding Cards}" Margin="0,16,0,0">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <UniformGrid Columns="2" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate>
-            <controls:MetricCard Margin="0,0,8,8" Title="{Binding Title}" Value="{Binding Value}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" BadgeKind="{Binding BadgeKind}" />
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-      <Border Style="{StaticResource Card}" Margin="0,8,0,0">
+
+      <UniformGrid Columns="4" Margin="0,20,0,0">
+        <controls:MetricCard Margin="0,0,8,0" Title="{Binding Cpu.Title}" Value="{Binding Cpu.Value}" Detail="{Binding Cpu.Detail}" BadgeText="{Binding Cpu.BadgeText}" BadgeKind="{Binding Cpu.BadgeKind}" />
+        <controls:MetricCard Margin="4,0" Title="{Binding Gpu.Title}" Value="{Binding Gpu.Value}" Detail="{Binding Gpu.Detail}" BadgeText="{Binding Gpu.BadgeText}" BadgeKind="{Binding Gpu.BadgeKind}" />
+        <controls:MetricCard Margin="4,0" Title="{Binding Ram.Title}" Value="{Binding Ram.Value}" Detail="{Binding Ram.Detail}" BadgeText="{Binding Ram.BadgeText}" BadgeKind="{Binding Ram.BadgeKind}" />
+        <controls:MetricCard Margin="8,0,0,0" Title="{Binding Disk.Title}" Value="{Binding Disk.Value}" Detail="{Binding Disk.Detail}" BadgeText="{Binding Disk.BadgeText}" BadgeKind="{Binding Disk.BadgeKind}" />
+      </UniformGrid>
+
+      <TextBlock Text="{Binding ChartSubtitle}" Style="{StaticResource Text.Caption}" Margin="0,18,0,8" />
+      <UniformGrid Columns="2">
+        <Border Style="{StaticResource Card}" Margin="0,0,8,8" MinHeight="180">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="CPU" Style="{StaticResource Text.Section}" Margin="0,0,0,12" />
+            <controls:Sparkline Height="120" Values="{Binding CpuSeries}" />
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="8,0,0,8" MinHeight="180">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="GPU" Style="{StaticResource Text.Section}" Margin="0,0,0,12" />
+            <controls:Sparkline Height="120" Values="{Binding GpuSeries}" />
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="0,8,8,0" MinHeight="180">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="RAM" Style="{StaticResource Text.Section}" Margin="0,0,0,12" />
+            <controls:Sparkline Height="120" Values="{Binding RamSeries}" />
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="8,8,0,0" MinHeight="180">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="Disk" Style="{StaticResource Text.Section}" Margin="0,0,0,12" />
+            <controls:Sparkline Height="120" Values="{Binding DiskSeries}" />
+          </DockPanel>
+        </Border>
+      </UniformGrid>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+        <StackPanel>
+          <TextBlock Text="GameLoop" Style="{StaticResource Text.Section}" />
+          <TextBlock Text="{Binding GameLoopState}" FontSize="28" FontWeight="SemiBold" Margin="0,12,0,0" />
+          <TextBlock Style="{StaticResource Text.Caption}" Margin="0,8,0,0">
+            <Run Text="CPU " /><Run Text="{Binding GameLoopCpu, Mode=OneWay}" />
+            <Run Text="    RAM " /><Run Text="{Binding GameLoopRam, Mode=OneWay}" />
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+        <StackPanel>
+          <TextBlock Text="History" Style="{StaticResource Text.Section}" />
+          <TextBlock Text="{Binding SummaryText}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding SpikeText}" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" />
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+        <TextBlock Text="{Binding FpsNotice}" Style="{StaticResource Text.Subtitle}" TextWrapping="Wrap" />
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0">
         <StackPanel>
           <TextBlock Text="Hardware" Style="{StaticResource Text.Section}" Margin="0,0,0,8" />
           <ItemsControl ItemsSource="{Binding HardwareRows}">
@@ -42,9 +95,9 @@
           </ItemsControl>
         </StackPanel>
       </Border>
-      <controls:ChartCard Margin="0,16,0,0" Title="{Binding ChartTitle}" Subtitle="{Binding ChartSubtitle}" EmptyMessage="{Binding ChartEmptyMessage}" HasData="{Binding ChartHasData}" />
+
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
-        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" />
+        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
       </Border>
     </StackPanel>
   </ScrollViewer>

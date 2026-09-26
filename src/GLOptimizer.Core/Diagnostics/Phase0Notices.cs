@@ -12,7 +12,7 @@ public static class Phase0Notices
         "This build does not read or modify App Market files.";
 
     public const string NoFrameMetrics =
-        "Frame metrics are not collected in this phase.";
+        "FPS monitoring unavailable with current safe monitoring method.";
 
     public const string NoOptimization =
         "Optimization actions are not available in this phase.";

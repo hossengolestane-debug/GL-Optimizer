@@ -13,18 +13,21 @@ public partial class MainViewModel : ObservableObject
     private readonly IPageViewModelFactory _pages;
     private readonly ISettingsStore _settings;
     private readonly ILogStore _log;
+    private readonly IMonitoringCoordinator _monitoring;
     private bool _persistSidebar;
 
     public MainViewModel(
         INavigationService navigation,
         IPageViewModelFactory pages,
         ISettingsStore settings,
-        ILogStore log)
+        ILogStore log,
+        IMonitoringCoordinator monitoring)
     {
         _navigation = navigation;
         _pages = pages;
         _settings = settings;
         _log = log;
+        _monitoring = monitoring;
         Sections = PageCatalog.All
             .GroupBy(page => page.Group)
             .Select(group => new NavigationSectionViewModel
@@ -56,6 +59,7 @@ public partial class MainViewModel : ObservableObject
     private void Navigate(AppPage page)
     {
         _navigation.Navigate(page);
+        _monitoring.SetPage(page);
         CurrentViewModel = _pages.Create(page);
         foreach (var item in Sections.SelectMany(section => section.Items))
         {

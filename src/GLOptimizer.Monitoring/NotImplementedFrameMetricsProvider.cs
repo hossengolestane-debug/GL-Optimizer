@@ -5,7 +5,7 @@ using GLOptimizer.Core.Results;
 namespace GLOptimizer.Monitoring;
 
 /// <summary>
-/// Phase 0 stub. Does not attach to a process and does not invent frame timings.
+/// No safe non-invasive frame provider is available. This does not inject, read game memory, or invent FPS.
 /// </summary>
 public sealed class NotImplementedFrameMetricsProvider : IFrameMetricsProvider
 {

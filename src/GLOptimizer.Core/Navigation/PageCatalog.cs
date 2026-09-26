@@ -8,7 +8,7 @@ public static class PageCatalog
     [
         new(AppPage.Dashboard, "Dashboard", "Overview", "Read-only hardware and GameLoop status. Optimization is not active."),
         new(AppPage.Optimize, "Optimize", "Performance", "Optimization actions are not available in this phase."),
-        new(AppPage.Monitoring, "Monitoring", "Performance", "Hardware is read from this PC. Frame metrics are not collected."),
+        new(AppPage.Monitoring, "Monitoring", "Performance", "Live CPU, memory, disk, and GameLoop samples. FPS is not collected."),
         new(AppPage.GameLoop, "GameLoop", "GameLoop", "Read-only detection of GameLoop installs. Config files are not modified."),
         new(AppPage.AppMarket, "App Market", "GameLoop", "Diagnostics are not implemented. This build does not read or modify App Market files."),
         new(AppPage.CodMobile, "COD Mobile", "Games", "Install presence is read from GameLoop local data when a verified install exists."),
