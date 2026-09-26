@@ -1,0 +1,12 @@
+{
+  "solution": {
+    "path": "GLOptimizer.sln",
+    "projects": [
+      "src\\GLOptimizer.Core\\GLOptimizer.Core.csproj",
+      "src\\GLOptimizer.Infrastructure\\GLOptimizer.Infrastructure.csproj",
+      "src\\GLOptimizer.GameLoop\\GLOptimizer.GameLoop.csproj",
+      "src\\GLOptimizer.Monitoring\\GLOptimizer.Monitoring.csproj",
+      "src\\GLOptimizer.Tests\\GLOptimizer.Tests.csproj"
+    ]
+  }
+}

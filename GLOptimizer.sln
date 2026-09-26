@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{FBF37746-1DD8-4820-BE97-90A8100012CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLOptimizer.Core", "src\GLOptimizer.Core\GLOptimizer.Core.csproj", "{C27B1E4A-1728-46E7-BF12-D57759C8C8E5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLOptimizer.Infrastructure", "src\GLOptimizer.Infrastructure\GLOptimizer.Infrastructure.csproj", "{70751B7C-A682-4026-9A64-8A8730645347}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLOptimizer.GameLoop", "src\GLOptimizer.GameLoop\GLOptimizer.GameLoop.csproj", "{7B6DF679-EFBF-4ED1-B5A0-2ACAB1EB43DA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLOptimizer.Monitoring", "src\GLOptimizer.Monitoring\GLOptimizer.Monitoring.csproj", "{CE7D6305-4F88-46F8-A448-4E6DFFD200AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLOptimizer.Tests", "src\GLOptimizer.Tests\GLOptimizer.Tests.csproj", "{FB53111D-CC16-4AB2-B3B2-1DCCD0849C89}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLOptimizer.App", "src\GLOptimizer.App\GLOptimizer.App.csproj", "{8F8C1F69-AF02-40C8-A793-E2C4AF135961}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C27B1E4A-1728-46E7-BF12-D57759C8C8E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C27B1E4A-1728-46E7-BF12-D57759C8C8E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C27B1E4A-1728-46E7-BF12-D57759C8C8E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C27B1E4A-1728-46E7-BF12-D57759C8C8E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70751B7C-A682-4026-9A64-8A8730645347}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70751B7C-A682-4026-9A64-8A8730645347}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70751B7C-A682-4026-9A64-8A8730645347}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70751B7C-A682-4026-9A64-8A8730645347}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B6DF679-EFBF-4ED1-B5A0-2ACAB1EB43DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B6DF679-EFBF-4ED1-B5A0-2ACAB1EB43DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B6DF679-EFBF-4ED1-B5A0-2ACAB1EB43DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B6DF679-EFBF-4ED1-B5A0-2ACAB1EB43DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE7D6305-4F88-46F8-A448-4E6DFFD200AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE7D6305-4F88-46F8-A448-4E6DFFD200AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE7D6305-4F88-46F8-A448-4E6DFFD200AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE7D6305-4F88-46F8-A448-4E6DFFD200AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB53111D-CC16-4AB2-B3B2-1DCCD0849C89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB53111D-CC16-4AB2-B3B2-1DCCD0849C89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB53111D-CC16-4AB2-B3B2-1DCCD0849C89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB53111D-CC16-4AB2-B3B2-1DCCD0849C89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F8C1F69-AF02-40C8-A793-E2C4AF135961}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F8C1F69-AF02-40C8-A793-E2C4AF135961}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F8C1F69-AF02-40C8-A793-E2C4AF135961}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F8C1F69-AF02-40C8-A793-E2C4AF135961}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C27B1E4A-1728-46E7-BF12-D57759C8C8E5} = {FBF37746-1DD8-4820-BE97-90A8100012CA}
+		{70751B7C-A682-4026-9A64-8A8730645347} = {FBF37746-1DD8-4820-BE97-90A8100012CA}
+		{7B6DF679-EFBF-4ED1-B5A0-2ACAB1EB43DA} = {FBF37746-1DD8-4820-BE97-90A8100012CA}
+		{CE7D6305-4F88-46F8-A448-4E6DFFD200AA} = {FBF37746-1DD8-4820-BE97-90A8100012CA}
+		{FB53111D-CC16-4AB2-B3B2-1DCCD0849C89} = {FBF37746-1DD8-4820-BE97-90A8100012CA}
+		{8F8C1F69-AF02-40C8-A793-E2C4AF135961} = {FBF37746-1DD8-4820-BE97-90A8100012CA}
+	EndGlobalSection
+EndGlobal
