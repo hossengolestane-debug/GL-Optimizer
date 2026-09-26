@@ -54,4 +54,6 @@ public interface IMonitoringCoordinator : IDisposable
     void Stop();
 
     void NotifyIntervalChanged();
+
+    void Refresh();
 }

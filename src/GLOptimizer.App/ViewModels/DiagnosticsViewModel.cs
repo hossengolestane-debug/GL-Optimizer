@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Configuration;
@@ -6,8 +7,11 @@ using GLOptimizer.Core.Detection;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Models;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Network;
 using GLOptimizer.Core.Results;
+using GLOptimizer.GameLoop;
 using GLOptimizer.Infrastructure;
+using Microsoft.Win32;
 
 namespace GLOptimizer.App.ViewModels;
 
@@ -19,6 +23,8 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
     private readonly IGameLoopDetector _gameLoop;
     private readonly IGameLoopConfigDiscovery _config;
     private readonly ICodMobileDiagnostics _cod;
+    private readonly IPubgMobileDiagnostics _pubg;
+    private readonly INetworkDiagnostics _network;
     private readonly IOptimizationService _optimization;
     private readonly IBackupService _backups;
     private readonly ScanSession _session = new();
@@ -30,6 +36,8 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
         IGameLoopDetector gameLoop,
         IGameLoopConfigDiscovery config,
         ICodMobileDiagnostics cod,
+        IPubgMobileDiagnostics pubg,
+        INetworkDiagnostics network,
         IOptimizationService optimization,
         IBackupService backups)
         : base(AppPage.Diagnostics)
@@ -40,6 +48,8 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
         _gameLoop = gameLoop;
         _config = config;
         _cod = cod;
+        _pubg = pubg;
+        _network = network;
         _optimization = optimization;
         _backups = backups;
     }
@@ -48,11 +58,66 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
 
     public string SafetyNote => Phase0Notices.Safety + " " + Phase0Notices.ReadOnlyGameLoop;
 
+    [ObservableProperty]
+    private string _networkSummary = "Not run. Latency is measured only after you press Run, and only for the allowlist.";
+
+    [ObservableProperty]
+    private string? _exportMessage;
+
     [RelayCommand]
     private Task RunChecksAsync() => RunScanAsync();
 
     [RelayCommand]
     private void CancelScan() => _session.Cancel();
+
+    [RelayCommand]
+    private async Task RunNetworkAsync()
+    {
+        NetworkSummary = "Checking the allowlist…";
+        var result = await _network.RunAsync();
+        if (!result.Succeeded || result.Value is null)
+        {
+            NetworkSummary = result.Error ?? "The network check could not finish.";
+            Rows.Add(new DiagnosticRowModel("Network", NetworkSummary, "UNKNOWN", StatusKind.Unavailable));
+            return;
+        }
+
+        var report = result.Value;
+        var parts = new List<string>
+        {
+            report.Available ? "Available" : "Unavailable",
+            report.ConnectionType
+        };
+        foreach (var sample in report.Samples)
+        {
+            parts.Add(sample.LatencyMilliseconds is int latency
+                ? sample.Host + " " + latency.ToString(System.Globalization.CultureInfo.InvariantCulture) + " ms"
+                : sample.Host + " " + (sample.Error ?? "Unknown"));
+        }
+
+        NetworkSummary = string.Join(" · ", parts);
+        Rows.Add(new DiagnosticRowModel("Network", NetworkSummary, report.RequestedNetwork ? "Reported" : "UNKNOWN", report.Available ? StatusKind.Ready : StatusKind.Unavailable));
+    }
+
+    [RelayCommand]
+    private void ExportText() => SaveReport(json: false);
+
+    [RelayCommand]
+    private void ExportJson() => SaveReport(json: true);
+
+    [RelayCommand]
+    private void CopyReport()
+    {
+        try
+        {
+            System.Windows.Clipboard.SetText(ReportBody(json: false));
+            ExportMessage = "Report copied.";
+        }
+        catch (Exception)
+        {
+            ExportMessage = "The report could not be copied.";
+        }
+    }
 
     public void Refresh() => _ = RunScanAsync();
 
@@ -90,6 +155,12 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
                 Rows.Add(new DiagnosticRowModel("Frame metrics", Phase0Notices.NoFrameMetrics, "Unavailable", StatusKind.Unavailable));
             }
             await AddMarketAndCodAsync(token);
+            if (!_session.IsCurrent(generation))
+            {
+                return;
+            }
+
+            await AddPubgAsync(token);
             if (!_session.IsCurrent(generation))
             {
                 return;
@@ -274,6 +345,75 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
                 Badge(finding.Outcome),
                 KindFor(finding.Outcome)));
         }
+    }
+
+    private async Task AddPubgAsync(CancellationToken token)
+    {
+        var result = await _pubg.RunAsync(token);
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            Rows.Add(new DiagnosticRowModel("PUBG MOBILE", result.Error ?? "The check could not finish.", "UNKNOWN", StatusKind.Unavailable));
+            return;
+        }
+
+        var report = result.Value;
+        Rows.Add(new DiagnosticRowModel(
+            "PUBG MOBILE",
+            report.Issue ?? report.InstalledDetail ?? "PUBG Mobile presence was not reported.",
+            report.StatusText,
+            KindFor(OutcomeFor(report.Comparison))));
+        Rows.Add(VersionRow("PUBG MOBILE / Installed version", report.InstalledVersion, "The installed version is read from a PUBG Mobile package folder. Unknown means no unambiguous version file was found."));
+        Rows.Add(VersionRow("PUBG MOBILE / Market version", report.MarketVersion, "The market version is read from App Market metadata already found. Unknown means that metadata did not contain one unambiguous version."));
+        Rows.Add(new DiagnosticRowModel(
+            "PUBG MOBILE / Official version",
+            report.OfficialDetail ?? "Official version source not implemented.",
+            "UNKNOWN",
+            StatusKind.Unavailable));
+        Rows.Add(new DiagnosticRowModel("PUBG MOBILE / Launch", report.LaunchStatus, report.LaunchStatus == "Running" ? "PASS" : "UNKNOWN", report.LaunchStatus == "Running" ? StatusKind.Ready : StatusKind.Unavailable));
+        Rows.Add(new DiagnosticRowModel("PUBG MOBILE / CPU", report.CpuDetail, report.CpuDetail == "Unknown" ? "UNKNOWN" : "PASS", report.CpuDetail == "Unknown" ? StatusKind.Unavailable : StatusKind.Ready));
+        Rows.Add(new DiagnosticRowModel("PUBG MOBILE / Log", report.LogDetail, report.LogDetail.StartsWith("No engine", StringComparison.Ordinal) ? "UNKNOWN" : "WARNING", report.LogDetail.StartsWith("No engine", StringComparison.Ordinal) ? StatusKind.Unavailable : StatusKind.Attention));
+    }
+
+    private void SaveReport(bool json)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Filter = json ? "JSON|*.json" : "Text|*.txt",
+            FileName = json ? "gl-optimizer-report.json" : "gl-optimizer-report.txt"
+        };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(dialog.FileName, ReportBody(json));
+            ExportMessage = "Report saved.";
+        }
+        catch (Exception)
+        {
+            ExportMessage = "The report could not be saved.";
+        }
+    }
+
+    private string ReportBody(bool json)
+    {
+        var lines = Rows.Select(row => new DiagnosticReportLine
+        {
+            Title = row.Title,
+            Detail = row.Detail,
+            Badge = row.BadgeText
+        }).ToList();
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return json
+            ? DiagnosticReportBuilder.ToJson(lines, profile)
+            : DiagnosticReportBuilder.ToText(lines, profile);
     }
 
     private static DiagnosticRowModel VersionRow(string title, string? version, string explanation)

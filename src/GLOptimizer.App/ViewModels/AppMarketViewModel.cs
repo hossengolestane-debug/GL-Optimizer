@@ -7,6 +7,7 @@ using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Detection;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Notifications;
 using GLOptimizer.Core.Repair;
 using GLOptimizer.Core.Results;
 using GLOptimizer.GameLoop;
@@ -20,6 +21,7 @@ public partial class AppMarketViewModel : PageViewModel, IRefreshable
     private readonly IUserConfirmation _confirm;
     private readonly IGameLoopLauncher _launcher;
     private readonly IGameLoopDetector _detector;
+    private readonly IToastCenter _toasts;
     private readonly ScanSession _session = new();
     private CancellationTokenSource? _repairCancellation;
 
@@ -28,7 +30,8 @@ public partial class AppMarketViewModel : PageViewModel, IRefreshable
         IAppMarketRepair repair,
         IUserConfirmation confirm,
         IGameLoopLauncher launcher,
-        IGameLoopDetector detector)
+        IGameLoopDetector detector,
+        IToastCenter toasts)
         : base(AppPage.AppMarket)
     {
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -36,11 +39,13 @@ public partial class AppMarketViewModel : PageViewModel, IRefreshable
         ArgumentNullException.ThrowIfNull(confirm);
         ArgumentNullException.ThrowIfNull(launcher);
         ArgumentNullException.ThrowIfNull(detector);
+        ArgumentNullException.ThrowIfNull(toasts);
         _diagnostics = diagnostics;
         _repair = repair;
         _confirm = confirm;
         _launcher = launcher;
         _detector = detector;
+        _toasts = toasts;
     }
 
     public string SafetyNote => Phase0Notices.Safety + " " + Phase0Notices.NoAppMarketIo;
@@ -226,6 +231,10 @@ public partial class AppMarketViewModel : PageViewModel, IRefreshable
         RepairMessage = started.Succeeded
             ? "Start requested for the verified launcher."
             : started.Error ?? "GameLoop could not be started.";
+        if (started.Succeeded)
+        {
+            _toasts.Show(ToastCatalog.GameLoopStarted);
+        }
     }
 
     [RelayCommand(CanExecute = nameof(Idle))]
@@ -288,6 +297,10 @@ public partial class AppMarketViewModel : PageViewModel, IRefreshable
         var toast = result.Value.Completed && result.Value.Toast == AppMarketRepairService.CompletedToast;
         ShowToast = toast;
         Toast = toast ? result.Value.Toast! : string.Empty;
+        if (toast)
+        {
+            _toasts.Show(ToastCatalog.RepairCompleted);
+        }
     }
 
     private void ShowPlan(AppMarketRepairPlan plan)

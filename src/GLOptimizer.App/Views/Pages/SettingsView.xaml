@@ -9,6 +9,42 @@
       <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
       <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,20" />
 
+      <controls:SettingsRow Title="Theme" Description="{Binding ThemeNote}">
+        <controls:SettingsRow.Slot>
+          <TextBlock Text="Dark" VerticalAlignment="Center" />
+        </controls:SettingsRow.Slot>
+      </controls:SettingsRow>
+
+      <controls:SettingsRow Title="Start with Windows" Description="{Binding StartupNote}">
+        <controls:SettingsRow.Slot>
+          <CheckBox IsChecked="{Binding StartWithWindows}" Content="Enabled" VerticalAlignment="Center" />
+        </controls:SettingsRow.Slot>
+      </controls:SettingsRow>
+
+      <controls:SettingsRow Title="Minimize to tray" Description="Minimizing or closing hides the window. Exit from the tray quits.">
+        <controls:SettingsRow.Slot>
+          <CheckBox IsChecked="{Binding MinimizeToTray}" Content="Enabled" VerticalAlignment="Center" />
+        </controls:SettingsRow.Slot>
+      </controls:SettingsRow>
+
+      <controls:SettingsRow Title="Monitoring" Description="When this is off, the dashboard and Monitoring page do not sample.">
+        <controls:SettingsRow.Slot>
+          <CheckBox IsChecked="{Binding MonitoringEnabled}" Content="Enabled" VerticalAlignment="Center" />
+        </controls:SettingsRow.Slot>
+      </controls:SettingsRow>
+
+      <controls:SettingsRow Title="Automatic backup" Description="After saving, copy discovered GameLoop configuration when files exist.">
+        <controls:SettingsRow.Slot>
+          <CheckBox IsChecked="{Binding AutomaticBackup}" Content="Enabled" VerticalAlignment="Center" />
+        </controls:SettingsRow.Slot>
+      </controls:SettingsRow>
+
+      <controls:SettingsRow Title="GameLoop path" Description="Used only after a known launcher file is found in that folder.">
+        <controls:SettingsRow.Slot>
+          <TextBox Width="280" Text="{Binding GameLoopPathOverride, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:SettingsRow.Slot>
+      </controls:SettingsRow>
+
       <controls:SettingsRow Title="Appearance" Description="The interface stays black and white.">
         <controls:SettingsRow.Slot>
           <TextBlock Text="{Binding Appearance}" VerticalAlignment="Center" />
@@ -58,6 +94,7 @@
 
       <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
         <Button Content="Save settings" Command="{Binding SaveCommand}" Style="{StaticResource Button.Primary}" />
+        <Button Content="Check for updates" Command="{Binding CheckUpdatesCommand}" Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" />
         <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Text.Caption}" VerticalAlignment="Center" Margin="16,0,0,0" />
       </StackPanel>
 
@@ -65,6 +102,7 @@
         <TextBlock Text="Developer" Style="{StaticResource Text.Section}" />
         <TextBlock Text="Shown only in debug builds." Style="{StaticResource Text.Caption}" Margin="0,6,0,12" />
         <TextBlock Text="{Binding PathsSummary}" Style="{StaticResource Text.Caption}" Margin="0,0,0,12" />
+        <CheckBox IsChecked="{Binding DeveloperSimulation}" Content="Simulate GameLoop, COD versions, App Market state, and a CPU sample" Margin="0,0,0,12" />
         <Button Content="Write debug log entry" Command="{Binding WriteDeveloperLogCommand}" Style="{StaticResource Button.Secondary}" HorizontalAlignment="Left" />
       </StackPanel>
     </StackPanel>

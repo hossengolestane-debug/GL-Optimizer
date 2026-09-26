@@ -6,8 +6,10 @@ using GLOptimizer.App.Services;
 using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Configuration;
 using GLOptimizer.Core.Diagnostics;
+using GLOptimizer.Core.Elevation;
 using GLOptimizer.Core.Models;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Notifications;
 using GLOptimizer.Core.Repair;
 
 namespace GLOptimizer.App.ViewModels;
@@ -18,18 +20,38 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
     private readonly IGameLoopLauncher _launcher;
     private readonly IGameLoopConfigDiscovery _config;
     private readonly IUserConfirmation _confirm;
+    private readonly ILaunchOptimized _launch;
+    private readonly IElevationRelaunch _elevation;
+    private readonly IToastCenter _toasts;
     private readonly ScanSession _session = new();
     private GameLoopConfigReport? _report;
 
-    public GameLoopViewModel(IGameLoopDetector detector, IGameLoopLauncher launcher, IGameLoopConfigDiscovery config, IUserConfirmation confirm)
+    public GameLoopViewModel(
+        IGameLoopDetector detector,
+        IGameLoopLauncher launcher,
+        IGameLoopConfigDiscovery config,
+        IUserConfirmation confirm,
+        ILaunchOptimized launch,
+        IElevationRelaunch elevation,
+        IToastCenter toasts)
         : base(AppPage.GameLoop)
     {
         _detector = detector;
         _launcher = launcher;
         _config = config;
         _confirm = confirm;
+        _launch = launch;
+        _elevation = elevation;
+        _toasts = toasts;
         ConfigRows.FillSettings(ConfigSettings, null);
     }
+
+    public string RuntimeNote =>
+        ElevationPolicy.RunsAsInvoker
+        + " "
+        + (_launch.PowerPlan().Error ?? "Power plan changes are not implemented.")
+        + " "
+        + (_launch.GraphicsPreference().Error ?? "Graphics preference changes are not implemented.");
 
     public string SafetyNote => Phase0Notices.Safety + " " + Phase0Notices.ReadOnlyGameLoop;
 
@@ -105,6 +127,39 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
         ActionMessage = result.Succeeded
             ? "Start requested for the verified launcher."
             : result.Error ?? "GameLoop could not be started.";
+        if (result.Succeeded)
+        {
+            _toasts.Show(ToastCatalog.GameLoopStarted);
+        }
+    }
+
+    [RelayCommand]
+    private async Task LaunchOptimizedAsync()
+    {
+        if (!_confirm.Confirm(
+                "Launch Optimized",
+                "Set verified GameLoop processes to AboveNormal. Realtime is never set. The change lasts while those processes run, then the journal is cleared. A crash leaves the journal so the next startup can restore the saved priorities."))
+        {
+            ActionMessage = "Launch Optimized was not confirmed.";
+            return;
+        }
+
+        var result = await _launch.ApplyAsync(confirmed: true);
+        if (result.Succeeded)
+        {
+            ActionMessage = "AboveNormal was applied to verified GameLoop processes.";
+            return;
+        }
+
+        ActionMessage = result.Error ?? "Launch Optimized could not be applied.";
+        if (result.Error?.Contains("elevation", StringComparison.OrdinalIgnoreCase) == true
+            && _confirm.Confirm("Elevation", ActionMessage + " Relaunch only this operation with elevation?"))
+        {
+            var elevated = _elevation.Relaunch("launch-optimized");
+            ActionMessage = elevated.Succeeded
+                ? "Elevation was requested for Launch Optimized only."
+                : elevated.Error ?? ActionMessage;
+        }
     }
 
     private bool CanStart() => !string.IsNullOrWhiteSpace(SelectedInstall?.Installation.LauncherPath);

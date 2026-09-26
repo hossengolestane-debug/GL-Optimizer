@@ -11,9 +11,13 @@ namespace GLOptimizer.GameLoop;
 /// </summary>
 public sealed class AppMarketVersionService
 {
-    public string? ReadMarketVersion(string installRoot, IReadOnlyList<MarketInventoryItem> items, CancellationToken cancellationToken)
+    public string? ReadMarketVersion(string installRoot, IReadOnlyList<MarketInventoryItem> items, CancellationToken cancellationToken) =>
+        ReadMarketVersion(installRoot, items, MobilePackages.Cod, cancellationToken);
+
+    public string? ReadMarketVersion(string installRoot, IReadOnlyList<MarketInventoryItem> items, IReadOnlyList<string> packageIds, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(items);
+        ArgumentNullException.ThrowIfNull(packageIds);
         var root = InstallPathRules.TryNormalize(installRoot);
         if (root is null)
         {
@@ -35,18 +39,18 @@ public sealed class AppMarketVersionService
             }
 
             var relative = item.RelativePath.Replace('\\', '/');
-            if (!HasSegment(relative, "AppMarket") || IsPackageVersionFile(relative))
+            if (!HasSegment(relative, "AppMarket") || IsPackageVersionFile(relative, packageIds))
             {
                 continue;
             }
 
-            var pathMentions = MentionsCod(relative);
+            var pathMentions = Mentions(relative, packageIds);
             string? version;
             if (IsSqlite(item.Path))
             {
-                version = ReadSqlite(item.Path, pathMentions, cancellationToken);
+                version = ReadSqlite(item.Path, pathMentions, packageIds, cancellationToken);
             }
-            else if (pathMentions || TextMentionsCod(item.Path))
+            else if (pathMentions || TextMentions(item.Path, packageIds))
             {
                 version = CodMobileVersionChecker.ReadTextVersion(item.Path);
             }
@@ -70,7 +74,7 @@ public sealed class AppMarketVersionService
         return found.Count == 1 ? found.First() : null;
     }
 
-    private static string? ReadSqlite(string path, bool pathMentionsCod, CancellationToken cancellationToken)
+    private static string? ReadSqlite(string path, bool pathMentionsPackage, IReadOnlyList<string> packageIds, CancellationToken cancellationToken)
     {
         try
         {
@@ -127,7 +131,7 @@ public sealed class AppMarketVersionService
                     continue;
                 }
 
-                if (!pathMentionsCod && packageColumns.Count == 0)
+                if (!pathMentionsPackage && packageColumns.Count == 0)
                 {
                     continue;
                 }
@@ -135,7 +139,7 @@ public sealed class AppMarketVersionService
                 var packageColumn = packageColumns.Count == 1 ? packageColumns[0] : null;
                 foreach (var versionColumn in versionColumns)
                 {
-                    ReadVersionColumn(connection, table, versionColumn, packageColumn, pathMentionsCod, found);
+                    ReadVersionColumn(connection, table, versionColumn, packageColumn, pathMentionsPackage, packageIds, found);
                     if (found.Count > 1)
                     {
                         return null;
@@ -156,7 +160,8 @@ public sealed class AppMarketVersionService
         string table,
         string versionColumn,
         string? packageColumn,
-        bool pathMentionsCod,
+        bool pathMentionsPackage,
+        IReadOnlyList<string> packageIds,
         HashSet<string> found)
     {
         using var command = connection.CreateCommand();
@@ -174,12 +179,12 @@ public sealed class AppMarketVersionService
             if (packageColumn is not null)
             {
                 var package = reader.IsDBNull(1) ? null : reader.GetValue(1)?.ToString();
-                if (!MentionsCod(package))
+                if (!Mentions(package, packageIds))
                 {
                     continue;
                 }
             }
-            else if (!pathMentionsCod)
+            else if (!pathMentionsPackage)
             {
                 continue;
             }
@@ -213,7 +218,7 @@ public sealed class AppMarketVersionService
         return columns;
     }
 
-    private static bool TextMentionsCod(string path)
+    private static bool TextMentions(string path, IReadOnlyList<string> packageIds)
     {
         try
         {
@@ -225,7 +230,7 @@ public sealed class AppMarketVersionService
                 stream.ReadExactly(buffer);
             }
 
-            return MentionsCod(System.Text.Encoding.UTF8.GetString(buffer));
+            return Mentions(System.Text.Encoding.UTF8.GetString(buffer), packageIds);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
@@ -233,7 +238,7 @@ public sealed class AppMarketVersionService
         }
     }
 
-    private static bool IsPackageVersionFile(string relative)
+    private static bool IsPackageVersionFile(string relative, IReadOnlyList<string> packageIds)
     {
         var slash = relative.LastIndexOf('/');
         if (slash <= 0)
@@ -245,7 +250,7 @@ public sealed class AppMarketVersionService
         var parent = relative[..slash];
         var parentSlash = parent.LastIndexOf('/');
         var parentName = parentSlash < 0 ? parent : parent[(parentSlash + 1)..];
-        if (!MentionsExactPackage(parentName))
+        if (!MentionsExact(parentName, packageIds))
         {
             return false;
         }
@@ -297,14 +302,14 @@ public sealed class AppMarketVersionService
         return true;
     }
 
-    private static bool MentionsCod(string? text)
+    private static bool Mentions(string? text, IReadOnlyList<string> packageIds)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
             return false;
         }
 
-        foreach (var packageId in MobilePackages.Cod)
+        foreach (var packageId in packageIds)
         {
             if (text.Contains(packageId, StringComparison.OrdinalIgnoreCase))
             {
@@ -315,9 +320,9 @@ public sealed class AppMarketVersionService
         return false;
     }
 
-    private static bool MentionsExactPackage(string name)
+    private static bool MentionsExact(string name, IReadOnlyList<string> packageIds)
     {
-        foreach (var packageId in MobilePackages.Cod)
+        foreach (var packageId in packageIds)
         {
             if (name.Equals(packageId, StringComparison.OrdinalIgnoreCase))
             {

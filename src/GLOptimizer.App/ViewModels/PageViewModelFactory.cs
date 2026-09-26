@@ -38,6 +38,7 @@ public sealed class PageViewModelFactory : IPageViewModelFactory
             AppPage.Diagnostics => ActivatorUtilities.CreateInstance<DiagnosticsViewModel>(_services),
             AppPage.Backups => ActivatorUtilities.CreateInstance<BackupsViewModel>(_services),
             AppPage.Logs => ActivatorUtilities.CreateInstance<LogsViewModel>(_services),
+            AppPage.Activity => ActivatorUtilities.CreateInstance<ActivityViewModel>(_services),
             AppPage.Settings => ActivatorUtilities.CreateInstance<SettingsViewModel>(_services),
             _ => throw new ArgumentOutOfRangeException(nameof(page), page, "Unknown page.")
         };

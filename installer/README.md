@@ -1,13 +1,13 @@
 # Installer
 
-Phase 1 does not ship an installer.
+Phase 10 builds the installer on Windows. This repository includes the Inno Setup script and a `workflow_dispatch` GitHub Actions workflow. Neither runs on the Linux test host.
 
-On Windows, publish a framework-dependent x64 build with:
+On `windows-latest`, `.github/workflows/windows-installer.yml` publishes a self-contained `win-x64` build and compiles `GLOptimizer.iss` into `GL-Optimizer-Setup.exe`.
+
+The package is per-user, requests no elevation, and installs only the GL Optimizer binaries. It does not include GameLoop files or App Market payloads.
+
+A framework-dependent publish, without the installer, is still:
 
 ```powershell
 .\scripts\publish-windows.ps1
 ```
-
-That produces `GLOptimizer.exe` plus its dependencies. The machine needs the .NET 8 Desktop Runtime.
-
-A later phase can wrap that output in MSIX or WiX. The package should stay per-user, request no elevation, and install only the GL Optimizer binaries. It must not include GameLoop files or App Market payloads.

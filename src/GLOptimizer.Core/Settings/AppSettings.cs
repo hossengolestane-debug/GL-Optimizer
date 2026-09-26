@@ -2,6 +2,12 @@ using GLOptimizer.Core.Logging;
 
 namespace GLOptimizer.Core.Settings;
 
+public enum AppTheme
+{
+    Dark = 0,
+    Light = 1
+}
+
 public sealed class AppSettings
 {
     public bool SidebarCollapsed { get; set; }
@@ -14,13 +20,37 @@ public sealed class AppSettings
 
     public int SampleIntervalMilliseconds { get; set; } = AppSettingsRules.DefaultSampleIntervalMilliseconds;
 
+    public bool StartWithWindows { get; set; }
+
+    public bool MinimizeToTray { get; set; }
+
+    public bool AutomaticBackup { get; set; }
+
+    public bool MonitoringEnabled { get; set; } = true;
+
+    public string? GameLoopPathOverride { get; set; }
+
+    public AppTheme Theme { get; set; } = AppTheme.Dark;
+
+    public bool FirstRunCompleted { get; set; }
+
+    public bool DeveloperSimulationEnabled { get; set; }
+
     public AppSettings Copy() => new()
     {
         SidebarCollapsed = SidebarCollapsed,
         MinimumLogLevel = MinimumLogLevel,
         LogRetentionDays = LogRetentionDays,
         MaxLogFileBytes = MaxLogFileBytes,
-        SampleIntervalMilliseconds = SampleIntervalMilliseconds
+        SampleIntervalMilliseconds = SampleIntervalMilliseconds,
+        StartWithWindows = StartWithWindows,
+        MinimizeToTray = MinimizeToTray,
+        AutomaticBackup = AutomaticBackup,
+        MonitoringEnabled = MonitoringEnabled,
+        GameLoopPathOverride = GameLoopPathOverride,
+        Theme = Theme,
+        FirstRunCompleted = FirstRunCompleted,
+        DeveloperSimulationEnabled = DeveloperSimulationEnabled
     };
 }
 
@@ -51,5 +81,17 @@ public static class AppSettingsRules
         {
             settings.MinimumLogLevel = LogSeverity.Information;
         }
+
+        if (!Enum.IsDefined(settings.Theme))
+        {
+            settings.Theme = AppTheme.Dark;
+        }
+
+        settings.GameLoopPathOverride = string.IsNullOrWhiteSpace(settings.GameLoopPathOverride)
+            ? null
+            : settings.GameLoopPathOverride.Trim();
+#if !DEBUG
+        settings.DeveloperSimulationEnabled = false;
+#endif
     }
 }

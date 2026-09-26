@@ -40,6 +40,8 @@ Services return `OperationResult` or `OperationResult<T>`.
 
 `AppMarketRepairRules` accepts only cache that is under the verified root, is not a reparse point, and is not a package, key map, APK, OBB, or XAPK. Metadata files are copied, not moved. `QuarantineStore` moves those cache files into the backup quarantine, or copies and hash-checks them when the backup is on another volume. A failed move restores files already placed. `RepairVerdictLogic` compares the market version saved before the repair with the version read after the user reopens GameLoop. REMOTE CATALOG ISSUE is produced only by that second read. `GameLoopSessionStopper` selects GameLoop-family processes whose executable path is inside the verified install. `FileBackupService` restores the quarantine with the same path checks and refuses the restore while GameLoop is running.
 
+`PubgMobileDiagnostics` uses the same version reader and `CatalogComparisonLogic`, passing `officialRaw: null`. `LaunchOptimizedService` plans `AboveNormal` through `ProcessSelection` and stores the previous priority in `JsonLaunchJournalStore`. `LaunchSessionWatcher` clears that journal after the recorded processes exit. `WindowsStartupRegistration` touches only `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `GL Optimizer`. `NotImplementedUpdateService` validates nothing on the network. `NetworkDiagnosticsService` probes the allowlist only when the Diagnostics page runs it. `ReportRedaction` replaces the user-profile path. `DeveloperSimulation` returns values only in Debug builds.
+
 ## Logging
 
 `FileLogStore` writes one tab-separated record per line, keeps a short in-memory buffer for the session, and rotates `gloptimizer.log` by size. Archive names embed a UTC timestamp so retention does not depend on filesystem creation time. `FileLoggerProvider` forwards `ILogger` calls into the same store.
@@ -49,6 +51,6 @@ Services return `OperationResult` or `OperationResult<T>`.
 1. Create `%LocalAppData%\GLOptimizer` and `Logs`.
 2. Load or create `settings.json`. A corrupt file falls back to defaults and is reported in the log.
 3. Apply the log level, size, and retention.
-4. Resolve `MainWindow`. The dashboard starts a read-only hardware and GameLoop scan.
+4. Resolve `MainWindow`. The dashboard starts a read-only hardware and GameLoop scan. If `FirstRunCompleted` is false, the welcome scan is shown once. If `launch-optimized.json` is still present, recovery is offered. `LaunchSessionWatcher` starts with the process.
 
 Unhandled dispatcher exceptions are logged and shown in `ErrorWindow`. The dialog uses `UserFacingError`, not the stack trace.

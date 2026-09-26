@@ -70,6 +70,16 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
         Updated?.Invoke(this, EventArgs.Empty);
     }
 
+    public void Refresh()
+    {
+        lock (_gate)
+        {
+            ApplyNoLock();
+        }
+
+        Updated?.Invoke(this, EventArgs.Empty);
+    }
+
     public void NotifyIntervalChanged()
     {
         lock (_gate)
@@ -96,7 +106,8 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
             return;
         }
 
-        var shouldRun = _page == AppPage.Dashboard || (_page == AppPage.Monitoring && !_held);
+        var shouldRun = _settings.Current.MonitoringEnabled
+            && (_page == AppPage.Dashboard || (_page == AppPage.Monitoring && !_held));
         if (!shouldRun)
         {
             if (_sampler.IsRunning)

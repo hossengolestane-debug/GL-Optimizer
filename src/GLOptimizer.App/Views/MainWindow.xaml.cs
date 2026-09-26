@@ -37,6 +37,18 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!_viewModel.AllowExit && _viewModel.MinimizeToTray)
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+
+        base.OnClosing(e);
+    }
+
     protected override void OnStateChanged(EventArgs e)
     {
         base.OnStateChanged(e);
@@ -64,7 +76,16 @@ public partial class MainWindow : Window
         });
     }
 
-    private void MinimizeClick(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    private void MinimizeClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.MinimizeToTray)
+        {
+            Hide();
+            return;
+        }
+
+        WindowState = WindowState.Minimized;
+    }
 
     private void MaximizeClick(object sender, RoutedEventArgs e) =>
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;

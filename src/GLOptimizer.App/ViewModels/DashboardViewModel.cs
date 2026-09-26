@@ -11,6 +11,7 @@ using GLOptimizer.Core.Monitoring;
 using GLOptimizer.Core.Navigation;
 using GLOptimizer.Core.Optimization;
 using GLOptimizer.Core.Results;
+using GLOptimizer.GameLoop;
 
 namespace GLOptimizer.App.ViewModels;
 
@@ -22,6 +23,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
     private readonly IMonitoringCoordinator _monitoring;
     private readonly IOptimizationService _optimization;
     private readonly ICodMobileDiagnostics _cod;
+    private readonly IPubgMobileDiagnostics _pubg;
     private readonly INavigationService _navigation;
     private readonly OptimizationProfileSelection _profile;
     private readonly SynchronizationContext? _ui = SynchronizationContext.Current;
@@ -37,6 +39,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         IMonitoringCoordinator monitoring,
         IOptimizationService optimization,
         ICodMobileDiagnostics cod,
+        IPubgMobileDiagnostics pubg,
         INavigationService navigation,
         OptimizationProfileSelection profile)
         : base(AppPage.Dashboard)
@@ -47,6 +50,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         _monitoring = monitoring;
         _optimization = optimization;
         _cod = cod;
+        _pubg = pubg;
         _navigation = navigation;
         _profile = profile;
         _monitoring.Updated += OnMonitoringUpdated;
@@ -139,6 +143,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
             }
 
             CodMobileReport? codReport = null;
+            PubgMobileReport? pubgReport = null;
             var cod = await _cod.RunAsync(checkOfficialVersion: false, token);
             if (!_session.IsCurrent(generation))
             {
@@ -150,7 +155,18 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
                 codReport = cod.Value;
             }
 
-            Apply(hardwareTask.Result, gameTask.Result, codReport);
+            var pubg = await _pubg.RunAsync(token);
+            if (!_session.IsCurrent(generation))
+            {
+                return;
+            }
+
+            if (pubg.Succeeded)
+            {
+                pubgReport = pubg.Value;
+            }
+
+            Apply(hardwareTask.Result, gameTask.Result, codReport, pubgReport);
             if (!_session.IsCurrent(generation))
             {
                 return;
@@ -202,7 +218,8 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
     private void Apply(
         OperationResult<HardwareReport> hardware,
         OperationResult<GameLoopScan> scan,
-        CodMobileReport? codReport)
+        CodMobileReport? codReport,
+        PubgMobileReport? pubgReport)
     {
         var report = hardware.Succeeded ? hardware.Value : null;
         var found = scan.Succeeded ? scan.Value : null;
@@ -230,14 +247,14 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
 
         GameCards.Clear();
         GameCards.Add(new GameStatusCard("GameLoop", "Verified install", gameLoopStatus.Badge, StatusLine, "G", gameLoopStatus.Kind));
-        var pubg = DetectionText.ForMobile(found?.PubgMobile, !scan.Succeeded);
+        var pubgCard = PubgCard(found?.PubgMobile, pubgReport, !scan.Succeeded);
         GameCards.Add(new GameStatusCard(
             "PUBG Mobile",
             HardwareText.Text(found?.PubgMobile.PackageId),
-            pubg.Badge,
-            found?.PubgMobile.Detail ?? "Unknown",
+            pubgCard.Badge,
+            pubgCard.Detail,
             "P",
-            pubg.Kind));
+            pubgCard.Kind));
         var codCard = CodCard(found?.CodMobile, codReport, !scan.Succeeded);
         GameCards.Add(new GameStatusCard(
             "COD Mobile",
@@ -259,6 +276,24 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         OnPropertyChanged(nameof(HasInstalls));
         _log.Write(LogSeverity.Information, "Scan", OverallText + ". " + StatusLine);
         ReloadActivity();
+    }
+
+    private static (string Badge, string Detail, StatusKind Kind) PubgCard(MobileGamePresence? presence, PubgMobileReport? report, bool scanFailed)
+    {
+        var presenceStatus = DetectionText.ForMobile(presence, scanFailed);
+        var presenceDetail = presence?.Detail ?? "Unknown";
+        if (report is null || report.Comparison == CatalogComparison.Unknown)
+        {
+            return (presenceStatus.Badge, presenceDetail, presenceStatus.Kind);
+        }
+
+        return report.Comparison switch
+        {
+            CatalogComparison.VersionMismatch => (report.StatusText, report.Issue ?? presenceDetail, StatusKind.Attention),
+            CatalogComparison.LocalMarketOutdated => (report.StatusText, report.Issue ?? presenceDetail, StatusKind.Attention),
+            CatalogComparison.Match => (report.StatusText, report.Issue ?? "Installed and market versions match.", StatusKind.Ready),
+            _ => (presenceStatus.Badge, presenceDetail, presenceStatus.Kind)
+        };
     }
 
     private static (string Badge, string Detail, StatusKind Kind) CodCard(MobileGamePresence? presence, CodMobileReport? report, bool scanFailed)

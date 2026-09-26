@@ -7,6 +7,7 @@ using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Notifications;
 using GLOptimizer.Core.Optimization;
 
 namespace GLOptimizer.App.ViewModels;
@@ -17,6 +18,7 @@ public partial class OptimizeViewModel : PageViewModel, IRefreshable
     private readonly IBenchmarkService _benchmark;
     private readonly ILogStore _log;
     private readonly IUserConfirmation _confirm;
+    private readonly IToastCenter _toasts;
     private readonly OptimizationProfileSelection _selection;
     private bool _suppress;
 
@@ -25,6 +27,7 @@ public partial class OptimizeViewModel : PageViewModel, IRefreshable
         IBenchmarkService benchmark,
         ILogStore log,
         IUserConfirmation confirm,
+        IToastCenter toasts,
         OptimizationProfileSelection selection)
         : base(AppPage.Optimize)
     {
@@ -32,6 +35,7 @@ public partial class OptimizeViewModel : PageViewModel, IRefreshable
         _benchmark = benchmark;
         _log = log;
         _confirm = confirm;
+        _toasts = toasts;
         _selection = selection;
         _selectedProfile = selection.Current.ToString();
         BenchmarkMessage = _benchmark.Describe().Error ?? "Benchmark mode is not implemented.";
@@ -151,6 +155,10 @@ public partial class OptimizeViewModel : PageViewModel, IRefreshable
             StatusMessage = result.Succeeded && result.Value is not null
                 ? result.Value.Summary + " " + result.Value.ResultText + " Backup " + result.Value.BackupId + "."
                 : result.Error ?? "Optimization could not be applied.";
+            if (result.Succeeded)
+            {
+                _toasts.Show(ToastCatalog.OptimizationApplied);
+            }
             await LoadAsync();
         }
         finally

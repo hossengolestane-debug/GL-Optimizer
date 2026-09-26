@@ -6,6 +6,7 @@ using GLOptimizer.Core.Detection;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Models;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.GameLoop;
 
 namespace GLOptimizer.App.ViewModels;
 
@@ -13,9 +14,10 @@ public partial class GamePageViewModel : PageViewModel, IRefreshable
 {
     private readonly IGameLoopDetector _detector;
     private readonly ICodMobileDiagnostics _cod;
+    private readonly IPubgMobileDiagnostics _pubg;
     private readonly ScanSession _session = new();
 
-    public GamePageViewModel(IGameLoopDetector detector, ICodMobileDiagnostics cod, AppPage page)
+    public GamePageViewModel(IGameLoopDetector detector, ICodMobileDiagnostics cod, IPubgMobileDiagnostics pubg, AppPage page)
         : base(page)
     {
         if (page is not (AppPage.CodMobile or AppPage.PubgMobile))
@@ -25,8 +27,10 @@ public partial class GamePageViewModel : PageViewModel, IRefreshable
 
         ArgumentNullException.ThrowIfNull(detector);
         ArgumentNullException.ThrowIfNull(cod);
+        ArgumentNullException.ThrowIfNull(pubg);
         _detector = detector;
         _cod = cod;
+        _pubg = pubg;
         Monogram = Title.Length == 0 ? "?" : char.ToUpperInvariant(Title[0]).ToString();
         IsCodPage = page == AppPage.CodMobile;
     }
@@ -34,6 +38,8 @@ public partial class GamePageViewModel : PageViewModel, IRefreshable
     public string Monogram { get; }
 
     public bool IsCodPage { get; }
+
+    public bool IsPubgPage => !IsCodPage;
 
     public string SafetyNote => Phase0Notices.Safety + " " + Phase0Notices.ReadOnlyGameLoop;
 
@@ -63,13 +69,19 @@ public partial class GamePageViewModel : PageViewModel, IRefreshable
     [ObservableProperty]
     private string _comparisonText = "UNKNOWN";
 
+    [ObservableProperty]
+    private string _launchStatus = "Unknown";
+
+    [ObservableProperty]
+    private string _profileText = "Balanced";
+
     public void Refresh() => _ = IsCodPage ? RunCodAsync(false) : RunPubgAsync();
 
     [RelayCommand]
     private Task CheckVersionAsync() => RunCodAsync(true);
 
     [RelayCommand]
-    private Task RunDiagnosticsAsync() => RunCodAsync(false);
+    private Task RunDiagnosticsAsync() => IsCodPage ? RunCodAsync(false) : RunPubgAsync();
 
     private async Task RunPubgAsync()
     {
@@ -77,23 +89,48 @@ public partial class GamePageViewModel : PageViewModel, IRefreshable
         try
         {
             StatusText = "Unknown";
-            CardDetail = "Scanning…";
+            ComparisonText = "UNKNOWN";
+            CardDetail = "Collecting diagnostics…";
             Kind = StatusKind.Neutral;
-            var result = await _detector.DetectAsync(token);
+            var result = await _pubg.RunAsync(token);
             if (!_session.IsCurrent(generation))
             {
                 return;
             }
 
+            Findings.Clear();
             if (!result.Succeeded || result.Value is null)
             {
                 StatusText = "Unknown";
-                CardDetail = result.Error ?? "GameLoop could not be scanned.";
+                InstalledVersion = "Unknown";
+                MarketVersion = "Unknown";
+                OfficialVersion = "Unknown";
+                OfficialDetail = result.Error ?? "PUBG Mobile could not be scanned.";
+                CardDetail = OfficialDetail;
                 Kind = StatusKind.Unavailable;
                 return;
             }
 
-            ApplyPresence(result.Value.PubgMobile);
+            var report = result.Value;
+            InstalledVersion = Display(report.InstalledVersion);
+            MarketVersion = Display(report.MarketVersion);
+            OfficialVersion = "Unknown";
+            OfficialDetail = report.OfficialDetail ?? "Official version source not implemented.";
+            ComparisonText = report.StatusText;
+            StatusText = report.StatusText;
+            Kind = KindFor(report.Comparison);
+            LaunchStatus = report.LaunchStatus;
+            ProfileText = report.OptimizationProfile + " · " + report.ApplicableRecommendations.ToString(System.Globalization.CultureInfo.InvariantCulture) + " applicable";
+            CardDetail = report.Issue ?? report.InstalledDetail ?? "Unknown";
+            if (!string.IsNullOrWhiteSpace(report.PackagePath))
+            {
+                CardDetail += " " + report.PackagePath;
+            }
+
+            foreach (var finding in report.Findings)
+            {
+                Findings.Add(new FindingRow(finding.Title, finding.Evidence, finding.RecommendedAction, OutcomeText(finding.Outcome)));
+            }
         }
         catch (Exception ex)
         {

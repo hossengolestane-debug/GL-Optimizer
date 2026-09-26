@@ -17,7 +17,10 @@
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
           <Button Content="Run checks" Command="{Binding RunChecksCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
-          <Button Content="Cancel" Command="{Binding CancelScanCommand}" Style="{StaticResource Button.Secondary}" />
+          <Button Content="Cancel" Command="{Binding CancelScanCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="Export TXT" Command="{Binding ExportTextCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="Export JSON" Command="{Binding ExportJsonCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="Copy Report" Command="{Binding CopyReportCommand}" Style="{StaticResource Button.Secondary}" />
         </StackPanel>
       </Grid>
       <Border Style="{StaticResource Card}" Margin="0,20,0,0">
@@ -30,7 +33,15 @@
         </ItemsControl>
       </Border>
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
-        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" />
+        <StackPanel>
+          <TextBlock Text="Network" Style="{StaticResource Text.Section}" />
+          <TextBlock Text="{Binding NetworkSummary}" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" TextWrapping="Wrap" />
+          <Button Content="Run" Command="{Binding RunNetworkCommand}" Margin="0,12,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" />
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding ExportMessage}" Style="{StaticResource Text.Caption}" Margin="0,12,0,0" />
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
       </Border>
     </StackPanel>
   </ScrollViewer>

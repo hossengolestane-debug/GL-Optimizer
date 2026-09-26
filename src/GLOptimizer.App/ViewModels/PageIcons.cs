@@ -16,6 +16,7 @@ internal static class PageIcons
         AppPage.Diagnostics => "\uE9D9",
         AppPage.Backups => "\uE74E",
         AppPage.Logs => "\uE7C3",
+        AppPage.Activity => "\uE823",
         AppPage.Settings => "\uE713",
         _ => "\uE897"
     };

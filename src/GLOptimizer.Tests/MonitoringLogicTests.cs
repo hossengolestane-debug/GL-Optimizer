@@ -233,6 +233,25 @@ public class MonitoringLogicTests
         Assert.Equal(2000, sampler.IntervalMilliseconds);
     }
 
+    [Fact]
+    public void Coordinator_does_not_sample_when_monitoring_is_disabled()
+    {
+        var sampler = new FakeSampler();
+        var settings = new MemorySettings();
+        settings.Value.MonitoringEnabled = false;
+        using var coordinator = new MonitoringCoordinator(sampler, settings);
+
+        coordinator.SetPage(AppPage.Dashboard);
+        Assert.False(sampler.IsRunning);
+
+        coordinator.SetPage(AppPage.Monitoring);
+        Assert.False(sampler.IsRunning);
+
+        settings.Value.MonitoringEnabled = true;
+        coordinator.Refresh();
+        Assert.True(sampler.IsRunning);
+    }
+
     private static MetricSample Sample(DateTimeOffset timestamp, double? cpu, double? gpu = null) => new()
     {
         Timestamp = timestamp,

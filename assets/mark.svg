@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="GL Optimizer">
   <rect width="64" height="64" rx="12" fill="#0A0A0A"/>
   <rect x="1.5" y="1.5" width="61" height="61" rx="11" fill="none" stroke="#FFFFFF" stroke-width="2"/>
-  <text x="32" y="40" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#FFFFFF">GL</text>
+  <path fill="#FFFFFF" d="M14 18h18v4H18v20h10v-6h-6v-4h10v14H14V18z"/>
+  <path fill="#FFFFFF" d="M40 18h4v24h12v4H40V18z"/>
 </svg>

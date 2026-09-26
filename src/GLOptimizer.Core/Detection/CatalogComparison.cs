@@ -35,7 +35,7 @@ public static class CatalogComparisonLogic
         _ => "UNKNOWN"
     };
 
-    public static CatalogComparisonResult Evaluate(string? installedRaw, string? marketRaw, string? officialRaw)
+    public static CatalogComparisonResult Evaluate(string? installedRaw, string? marketRaw, string? officialRaw, string productName = "COD Mobile")
     {
         if (HasText(installedRaw) && PackageVersion.Parse(installedRaw) is null)
         {
@@ -59,7 +59,7 @@ public static class CatalogComparisonLogic
             return new CatalogComparisonResult
             {
                 Comparison = CatalogComparison.VersionMismatch,
-                Detail = "COD Mobile version mismatch: installed " + installed.Text + ", market " + market.Text
+                Detail = productName + " version mismatch: installed " + installed.Text + ", market " + market.Text
             };
         }
 

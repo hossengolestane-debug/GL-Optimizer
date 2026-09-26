@@ -21,10 +21,12 @@ public static class AppHost
         services.AddGameLoopModule();
         services.AddMonitoringModule();
         services.AddSingleton<IFolderOpener, ExplorerFolderOpener>();
+        services.AddSingleton<IToastCenter, ToastCenter>();
         services.AddSingleton<IUserConfirmation, MessageBoxConfirmation>();
         services.AddSingleton<IPageViewModelFactory, PageViewModelFactory>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
+        services.AddSingleton<TrayHost>();
         return services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateOnBuild = true,
@@ -48,5 +50,6 @@ public static class AppHost
             LogSeverity.Information,
             "App",
             $"{BuildInfo.ProductName} {BuildInfo.PhaseName} ({BuildInfo.Version}) started.");
+        provider.GetRequiredService<LaunchSessionWatcher>().Start();
     }
 }

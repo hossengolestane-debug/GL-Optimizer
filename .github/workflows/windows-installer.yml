@@ -1,0 +1,23 @@
+name: windows-installer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Publish self-contained win-x64
+        run: dotnet publish src/GLOptimizer.App/GLOptimizer.App.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Compile GL-Optimizer-Setup.exe
+        run: iscc installer/GLOptimizer.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GL-Optimizer-Setup
+          path: installer/output/GL-Optimizer-Setup.exe

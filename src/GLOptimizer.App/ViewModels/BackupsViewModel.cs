@@ -9,6 +9,7 @@ using GLOptimizer.Core.Backup;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Notifications;
 
 namespace GLOptimizer.App.ViewModels;
 
@@ -17,13 +18,15 @@ public partial class BackupsViewModel : PageViewModel, IRefreshable
     private readonly IBackupService _backups;
     private readonly ILogStore _log;
     private readonly IUserConfirmation _confirm;
+    private readonly IToastCenter _toasts;
 
-    public BackupsViewModel(IBackupService backups, ILogStore log, IUserConfirmation confirm)
+    public BackupsViewModel(IBackupService backups, ILogStore log, IUserConfirmation confirm, IToastCenter toasts)
         : base(AppPage.Backups)
     {
         _backups = backups;
         _log = log;
         _confirm = confirm;
+        _toasts = toasts;
     }
 
     public ObservableCollection<BackupRow> Items { get; } = new();
@@ -81,6 +84,7 @@ public partial class BackupsViewModel : PageViewModel, IRefreshable
             if (result.Succeeded)
             {
                 Reason = string.Empty;
+                _toasts.Show(ToastCatalog.BackupCreated);
             }
 
             Refresh();

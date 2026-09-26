@@ -2,16 +2,16 @@
 
 GameLoop Performance & App Market Utility.
 
-Phase 8 adds a confirmed App Market repair that moves only re-validated cache into a backup quarantine. The earlier pipeline remains: hardware and GameLoop detection, live samples, a configuration report, backups, writes that change only keys already found in a parsed config file, and read-only COD Mobile diagnostics. It does not tune a running game, invent a frame rate, or change GameLoop's remote catalog.
+Phase 9 adds read-only PUBG Mobile diagnostics and the remaining local features: settings, a tray, a one-time welcome scan, Launch Optimized process priority, diagnostic export, an activity timeline, and a user-triggered network check. The earlier pipeline remains, including the confirmed App Market repair. It does not tune a running game, invent a frame rate, or change GameLoop's remote catalog.
 
 ## What this build does
 
 - Opens a custom-chrome window (default 1280×800, minimum 1100×700) with a collapsible sidebar.
-- Navigates to Dashboard, Optimize, Monitoring, GameLoop, App Market, COD Mobile, PUBG Mobile, Diagnostics, Backups, Logs, and Settings.
+- Navigates to Dashboard, Optimize, Monitoring, GameLoop, App Market, COD Mobile, PUBG Mobile, Diagnostics, Backups, Logs, Activity, and Settings.
 - Shows hardware that Windows actually returned. Missing CPU, GPU, memory, storage, or refresh fields stay **Unknown**.
 - Searches for GameLoop without assuming one install path. A directory counts only when a known launcher file is present. Version and engine stay empty unless they were read.
-- Shows PUBG Mobile and COD Mobile as Installed, Not found, or Unknown. Versions come only from unambiguous local version files.
-- Samples CPU, GPU (when the Windows counter exists), RAM, disk activity, and GameLoop process CPU, RAM, and state while the dashboard or Monitoring page is open. The interval is 500, 1000, or 2000 ms. Other pages do not keep the timer running.
+- Shows PUBG Mobile and COD Mobile as Installed, Not found, or Unknown. Versions come only from unambiguous local version files. PUBG also compares that version with App Market metadata already found, plus process, window, CPU, and local log evidence. The official PUBG version stays Unknown.
+- Samples CPU, GPU (when the Windows counter exists), RAM, disk activity, and GameLoop process CPU, RAM, and state while monitoring is enabled and the dashboard or Monitoring page is open. The interval is 500, 1000, or 2000 ms. Other pages do not keep the timer running. Turning monitoring off stops it.
 - Shows a 5-minute monochrome history and simple 90% spikes. FPS stays unavailable: there is no safe frame provider, and no number is invented.
 - Reports GameLoop configuration from verified installs only: known ini, json, and xml files, key maps, and the MobileGamePC registry key. Unrecognized settings stay **Unknown**. Discovery does not write.
 - Creates a backup of those found files under `%LocalAppData%\GLOptimizer\Backups`, with a manifest, hashes, a settings snapshot, and registry values as text. Restore shows a dry run, asks for confirmation, writes a pre-restore backup, and refuses unsafe paths and a running GameLoop.
@@ -20,11 +20,11 @@ Phase 8 adds a confirmed App Market repair that moves only re-validated cache in
 - Reads App Market files under a verified install: executable, cache directories, metadata, and COD Mobile package metadata, with a depth and file-count limit. SQLite metadata is opened read-only. **CHECK AGAIN** does not use the network. **Check Version** is the only control that asks for an official version, and that source is not implemented, so the official version stays Unknown.
 - **DRY RUN REPAIR** lists what would stop, what metadata would be copied, and which cache files would move. **REPAIR APP MARKET** asks for confirmation, stops only GameLoop processes inside the verified install, copies metadata, and moves cache into `%LocalAppData%\GLOptimizer\Backups\<id>\quarantine`. Metadata, packages, game data, APKs, OBBs, key maps, and unknown files are not removed. A set larger than 5 GB or 20,000 files, or any unexpected cache path, stops in the dry run. Cancel is available until the first move; after that the repair finishes or rolls the moved files back. **Start GameLoop** is offered afterward and is not launched automatically. **RE-CHECK AFTER GAMELOOP REFRESH** compares the saved pre-repair market version with the version read after GameLoop is opened again. A matching or newer market version is a local refresh. The same outdated version is reported as a remote catalog issue and is not modified. The success toast is "GameLoop App Market repair completed." and is written only when the move finishes. Restoring that backup from the Backups page puts the quarantined cache back and refuses to run while GameLoop is running.
 - Collects gray-screen evidence for COD Mobile: GameLoop and engine processes, a COD process or window under the verified install, a short CPU sample, the Phase 3 renderer, cache timestamps, and local engine log lines. Findings cite that evidence. Open in GameLoop, Restart Engine, and repair stay disabled.
-- Writes JSON settings to `%LocalAppData%\GLOptimizer\settings.json`.
+- Writes JSON settings to `%LocalAppData%\GLOptimizer\settings.json`. Start with Windows is the only registry write, and it is the HKCU Run value named `GL Optimizer`, saved only when the user turns it on. Launch Optimized can set AboveNormal on verified GameLoop processes and records that in `launch-optimized.json` until those processes exit or the next startup restores it. Realtime is never set.
 - Writes rolling logs to `%LocalAppData%\GLOptimizer\Logs\`.
 - Catches unhandled UI exceptions and shows a short message. The stack trace goes to the log.
 
-**OPTIMIZE NOW** asks for confirmation, then runs preview, backup, apply, and validate. It is disabled when that profile has no applicable recommendation. **Close** and **Restart** ask for confirmation, then close only processes whose executable path is inside the verified install. Force stop asks a second time. Unrelated processes are not touched. **Start** launches only a launcher file inside a verified install. Benchmark mode and frame metrics are still not implemented. This build does not write registry values. It writes a GameLoop config file only for a confirmed restore or a confirmed optimization of a key that was already in that file. App Market cache is moved into a backup quarantine, not deleted, and only after the checks above.
+**OPTIMIZE NOW** asks for confirmation, then runs preview, backup, apply, and validate. It is disabled when that profile has no applicable recommendation. **Close** and **Restart** ask for confirmation, then close only processes whose executable path is inside the verified install. Force stop asks a second time. Unrelated processes are not touched. **Start** launches only a launcher file inside a verified install. **Launch Optimized** changes only the priority of those verified processes to AboveNormal. Benchmark mode, frame metrics, power plan changes, graphics preference changes, Light theme, and the self-update download are still not implemented. GameLoop config is written only for a confirmed restore or a confirmed optimization of a key that was already in that file. App Market cache is moved into a backup quarantine, not deleted, and only after the checks above.
 
 ## Safety
 
@@ -37,7 +37,7 @@ GL Optimizer must not:
 - patch game binaries
 - imitate GameLoop server responses
 
-The build reads install metadata, process paths, configuration, and App Market files under a verified install. It can restore a confirmed backup, replace values that were already present after a backup and a validation check, and move re-validated App Market cache into a restorable quarantine. It does not write registry values or change GameLoop's remote catalog. See [docs/safety.md](docs/safety.md).
+The build reads install metadata, process paths, configuration, and App Market files under a verified install. It can restore a confirmed backup, replace values that were already present after a backup and a validation check, move re-validated App Market cache into a restorable quarantine, and set AboveNormal on a verified GameLoop process after confirmation. The only registry write is the user-initiated HKCU Run value for Start with Windows. It does not change GameLoop's remote catalog. See [docs/safety.md](docs/safety.md).
 
 Developer tools (a debug log button and local path display) are compiled only into Debug builds (`#if DEBUG`).
 
@@ -69,7 +69,7 @@ The WPF project sets `EnableWindowsTargeting`, so the full solution also compile
 dotnet test GLOptimizer.sln -c Release
 ```
 
-`scripts/build-libs.sh` runs that command. `GLOptimizer.NonWindows.slnf` builds only the class libraries and tests when the Windows targeting pack is not available. There is no installer in this phase. See [installer/README.md](installer/README.md).
+`scripts/build-libs.sh` runs that command. `GLOptimizer.NonWindows.slnf` builds only the class libraries and tests when the Windows targeting pack is not available. The installer is Phase 10 and is built on Windows by the `workflow_dispatch` workflow in `.github/workflows/windows-installer.yml`. See [installer/README.md](installer/README.md) and [docs/phase-10.md](docs/phase-10.md).
 
 ## Solution layout
 
@@ -99,11 +99,12 @@ Settings and logs:
 | Backups | `%LocalAppData%\GLOptimizer\Backups\<BackupId>\manifest.json` |
 | Repair checkpoint | `%LocalAppData%\GLOptimizer\repair-checkpoint.json` |
 | Repair quarantine | `%LocalAppData%\GLOptimizer\Backups\<BackupId>\quarantine\` |
+| Launch Optimized journal | `%LocalAppData%\GLOptimizer\launch-optimized.json` |
 
 Default retention is 14 days. The active log rotates after 2 MB. Both can be changed on the Settings page (1–90 days, 1–50 MB).
 
 ## Phases
 
-Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). Phase 3 configuration discovery is described in [docs/phase-3.md](docs/phase-3.md). Phase 4 backup and restore is described in [docs/phase-4.md](docs/phase-4.md). Phase 5 optimization is described in [docs/phase-5.md](docs/phase-5.md). Phase 6 COD Mobile diagnostics is described in [docs/phase-6.md](docs/phase-6.md). Phase 7 App Market diagnostics is described in [docs/phase-7.md](docs/phase-7.md). Phase 8 App Market repair is described in [docs/phase-8.md](docs/phase-8.md). Phase 9 PUBG Mobile diagnostics is planned in [docs/phase-9.md](docs/phase-9.md) and is not implemented. On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, FPS, or GameLoop settings.
+Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). Phase 2 live sampling is described in [docs/phase-2.md](docs/phase-2.md). Phase 3 configuration discovery is described in [docs/phase-3.md](docs/phase-3.md). Phase 4 backup and restore is described in [docs/phase-4.md](docs/phase-4.md). Phase 5 optimization is described in [docs/phase-5.md](docs/phase-5.md). Phase 6 COD Mobile diagnostics is described in [docs/phase-6.md](docs/phase-6.md). Phase 7 App Market diagnostics is described in [docs/phase-7.md](docs/phase-7.md). Phase 8 App Market repair is described in [docs/phase-8.md](docs/phase-8.md). Phase 9 PUBG Mobile diagnostics and the spec-gap pass are described in [docs/phase-9.md](docs/phase-9.md). Phase 10, the Windows installer, is planned in [docs/phase-10.md](docs/phase-10.md). On Linux and macOS the solution compiles and the tests run, but WMI, performance counters, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, memory, FPS, or GameLoop settings.
 
 More detail is in [docs/architecture.md](docs/architecture.md).

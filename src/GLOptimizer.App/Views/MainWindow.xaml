@@ -5,6 +5,7 @@
         xmlns:vm="clr-namespace:GLOptimizer.App.ViewModels"
         xmlns:pages="clr-namespace:GLOptimizer.App.Views.Pages"
         Title="GL Optimizer"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
         Width="1280"
         Height="800"
         MinWidth="1100"
@@ -54,6 +55,9 @@
     <DataTemplate DataType="{x:Type vm:LogsViewModel}">
       <pages:LogsView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ActivityViewModel}">
+      <pages:ActivityView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
       <pages:SettingsView />
     </DataTemplate>
@@ -84,7 +88,7 @@
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0">
           <Border Width="16" Height="16" CornerRadius="4" BorderBrush="{StaticResource Brush.Text.Primary}" BorderThickness="1.5" VerticalAlignment="Center" />
           <TextBlock Text="GL Optimizer" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
-          <TextBlock Text="Phase 0" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="12" />
+          <TextBlock Text="{Binding PhaseLabel}" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="12" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal">
           <Button Style="{StaticResource Button.Chrome}" Content="&#xE921;" Click="MinimizeClick" ToolTip="Minimize" AutomationProperties.Name="Minimize" shell:WindowChrome.IsHitTestVisibleInChrome="True" />
@@ -144,7 +148,30 @@
             </ScrollViewer>
           </DockPanel>
         </Border>
-        <ContentControl Grid.Column="1" Content="{Binding CurrentViewModel}" />
+        <Grid Grid.Column="1">
+          <ContentControl Content="{Binding CurrentViewModel}" />
+          <Border VerticalAlignment="Bottom" Margin="24,0,24,16" Background="{StaticResource Brush.Surface.1}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" Padding="16,12"
+                  Visibility="{Binding HasToast, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding ToastText}" TextWrapping="Wrap" />
+          </Border>
+          <Border Margin="24,16,24,0" VerticalAlignment="Top" Background="{StaticResource Brush.Surface.1}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" Padding="16"
+                  Visibility="{Binding ShowRecovery, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+              <TextBlock Text="{Binding RecoveryMessage}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                <Button Content="Restore priorities" Command="{Binding RestoreRecoveryCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
+                <Button Content="Dismiss" Command="{Binding DismissRecoveryCommand}" Style="{StaticResource Button.Secondary}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <Border Background="{StaticResource Brush.Background}" Visibility="{Binding ShowFirstRun, Converter={StaticResource BoolToVis}}">
+            <StackPanel MaxWidth="560" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="32">
+              <TextBlock Text="{Binding FirstRunHeadline}" Style="{StaticResource Text.PageTitle}" />
+              <TextBlock Text="{Binding FirstRunBody}" Style="{StaticResource Text.Subtitle}" Margin="0,16,0,0" TextWrapping="Wrap" />
+              <Button Content="Continue" Command="{Binding DismissFirstRunCommand}" Margin="0,24,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Primary}" />
+            </StackPanel>
+          </Border>
+        </Grid>
       </Grid>
     </Grid>
   </Border>

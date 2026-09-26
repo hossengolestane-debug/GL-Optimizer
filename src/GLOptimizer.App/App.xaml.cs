@@ -1,8 +1,11 @@
 using System.Windows;
 using System.Windows.Threading;
 using GLOptimizer.App.Composition;
+using GLOptimizer.App.Services;
 using GLOptimizer.App.Views;
+using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Diagnostics;
+using GLOptimizer.Core.Elevation;
 using GLOptimizer.Core.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,9 +26,26 @@ public partial class App : Application
         {
             _provider = AppHost.Build();
             AppHost.Start(_provider);
+            var operation = ElevationPolicy.Read(e.Args);
+            if (operation is not null)
+            {
+                var launch = _provider.GetRequiredService<ILaunchOptimized>();
+                var result = operation == "restore-priority"
+                    ? launch.RecoverAsync(restore: true).GetAwaiter().GetResult()
+                    : launch.ApplyAsync(confirmed: true).GetAwaiter().GetResult();
+                var log = _provider.GetRequiredService<ILogStore>();
+                log.Write(
+                    result.Succeeded ? LogSeverity.Information : LogSeverity.Warning,
+                    "Elevation",
+                    result.Succeeded ? operation + " completed." : result.Error ?? operation + " did not complete.");
+                Shutdown(result.Succeeded ? 0 : 1);
+                return;
+            }
+
             var window = _provider.GetRequiredService<MainWindow>();
             MainWindow = window;
             window.Show();
+            _provider.GetRequiredService<TrayHost>();
         }
         catch (Exception ex)
         {

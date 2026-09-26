@@ -12,5 +12,6 @@ public enum AppPage
     Diagnostics,
     Backups,
     Logs,
+    Activity,
     Settings
 }

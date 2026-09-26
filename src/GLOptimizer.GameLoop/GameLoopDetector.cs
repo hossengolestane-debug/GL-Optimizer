@@ -1,5 +1,6 @@
 using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Detection;
+using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Models;
 using GLOptimizer.Core.Results;
 
@@ -12,11 +13,18 @@ public sealed class GameLoopDetector : IGameLoopDetector
     private const int ParentHops = 4;
 
     private readonly IGameLoopEnvironment _environment;
+    private readonly ISettingsStore? _settings;
 
     public GameLoopDetector(IGameLoopEnvironment environment)
+        : this(environment, null)
+    {
+    }
+
+    public GameLoopDetector(IGameLoopEnvironment environment, ISettingsStore? settings)
     {
         ArgumentNullException.ThrowIfNull(environment);
         _environment = environment;
+        _settings = settings;
     }
 
     public async Task<OperationResult<GameLoopScan>> DetectAsync(CancellationToken cancellationToken = default)
@@ -24,6 +32,15 @@ public sealed class GameLoopDetector : IGameLoopDetector
         if (cancellationToken.IsCancellationRequested)
         {
             return OperationResult<GameLoopScan>.Failure("The scan was cancelled.");
+        }
+
+        if (DeveloperSimulation.IsAvailable && _settings?.Current.DeveloperSimulationEnabled == true)
+        {
+            var simulated = DeveloperSimulation.Scan();
+            if (simulated is not null)
+            {
+                return OperationResult<GameLoopScan>.Success(simulated);
+            }
         }
 
         try

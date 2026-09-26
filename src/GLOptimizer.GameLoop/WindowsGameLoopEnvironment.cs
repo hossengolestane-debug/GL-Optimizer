@@ -8,6 +8,17 @@ namespace GLOptimizer.GameLoop;
 public sealed class WindowsGameLoopEnvironment : IGameLoopEnvironment
 {
     private const int ShortcutCap = 400;
+    private readonly IInstallOverrideSource? _override;
+
+    public WindowsGameLoopEnvironment()
+        : this(null)
+    {
+    }
+
+    public WindowsGameLoopEnvironment(IInstallOverrideSource? overrides)
+    {
+        _override = overrides;
+    }
 
     public IReadOnlyList<UninstallHint> ReadUninstallHints()
     {
@@ -46,6 +57,11 @@ public sealed class WindowsGameLoopEnvironment : IGameLoopEnvironment
     public IReadOnlyList<string> CandidateDirectories()
     {
         var candidates = new List<string>();
+        var preferred = InstallOverrideRules.Candidate(_override?.OverridePath);
+        if (preferred is not null)
+        {
+            candidates.Add(preferred);
+        }
         try
         {
             foreach (var drive in DriveInfo.GetDrives())
