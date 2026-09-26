@@ -10,7 +10,7 @@ public static class PageCatalog
         new(AppPage.Optimize, "Optimize", "Performance", "Preview a profile, then apply it to keys that were already found. Registry values are not written."),
         new(AppPage.Monitoring, "Monitoring", "Performance", "Live CPU, memory, disk, and GameLoop samples. FPS is not collected."),
         new(AppPage.GameLoop, "GameLoop", "GameLoop", "Read-only detection and configuration report. Config files are not modified."),
-        new(AppPage.AppMarket, "App Market", "GameLoop", "Reads App Market files under a verified install. Repair is not available in this phase."),
+        new(AppPage.AppMarket, "App Market", "GameLoop", "Moves only re-validated App Market cache into a backup quarantine. Game data is not removed."),
         new(AppPage.CodMobile, "COD Mobile", "Games", "Reads the local install and compares it with App Market metadata. Check Version is the only control that asks for an official version."),
         new(AppPage.PubgMobile, "PUBG Mobile", "Games", "Install presence is read from GameLoop local data when a verified install exists."),
         new(AppPage.Diagnostics, "Diagnostics", "System", "Local files, hardware, and a read-only GameLoop configuration report."),

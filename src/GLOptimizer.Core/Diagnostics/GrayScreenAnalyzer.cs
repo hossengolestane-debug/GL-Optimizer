@@ -105,13 +105,13 @@ public static class GrayScreenAnalyzer
             CatalogComparison.VersionMismatch => Finding(
                 "COD Mobile version mismatch",
                 detail,
-                "Repair is available in Phase 8.",
+                "Use Repair App Market on the App Market page.",
                 100,
                 FindingOutcome.Failed),
             CatalogComparison.LocalMarketOutdated => Finding(
                 "Local market is older than the official version",
                 detail,
-                "Repair is available in Phase 8.",
+                "Use Repair App Market on the App Market page.",
                 90,
                 FindingOutcome.Warning),
             CatalogComparison.Match => Finding(

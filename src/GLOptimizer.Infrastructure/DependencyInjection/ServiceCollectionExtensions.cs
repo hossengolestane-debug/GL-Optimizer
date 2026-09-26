@@ -3,6 +3,7 @@ using GLOptimizer.Core.Logging;
 using GLOptimizer.Core.Navigation;
 using GLOptimizer.Core.Optimization;
 using GLOptimizer.Infrastructure.Backup;
+using GLOptimizer.Infrastructure.Repair;
 using GLOptimizer.Infrastructure.Optimization;
 using GLOptimizer.Infrastructure.Logging;
 using GLOptimizer.Infrastructure.Navigation;
@@ -28,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILogStore, FileLogStore>();
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IBackupService, FileBackupService>();
+        services.AddSingleton<IRepairStateStore, JsonRepairStateStore>();
         services.AddSingleton<IConfigFileWriter, AtomicConfigFileWriter>();
         services.AddSingleton<IOptimizationRecordStore, JsonOptimizationRecordStore>();
         services.AddSingleton<IHostOptimizationProbe, NotImplementedHostOptimizationProbe>();

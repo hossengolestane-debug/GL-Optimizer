@@ -129,7 +129,12 @@ public sealed class FileBackupService : IBackupService
             }
 
             string? preId = null;
-            if (preview.Value.Files.Any(file => file.Disposition == RestoreDisposition.Replace && File.Exists(file.OriginalPath)))
+            var replacesConfig = preview.Value.Files.Any(file =>
+                file.Disposition == RestoreDisposition.Replace
+                && File.Exists(file.OriginalPath)
+                && !file.StoredName.Contains('/')
+                && !file.StoredName.Contains('\\'));
+            if (replacesConfig)
             {
                 var pre = await CreateCoreAsync("Pre-restore backup before restoring " + backupId + ".", cancellationToken).ConfigureAwait(false);
                 if (!pre.Succeeded || pre.Value?.Manifest is null)
@@ -147,6 +152,11 @@ public sealed class FileBackupService : IBackupService
             foreach (var file in preview.Value.Files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (file.StoredName.Contains('/') || file.StoredName.Contains('\\'))
+                {
+                    continue;
+                }
+
                 if (file.Disposition == RestoreDisposition.Unchanged)
                 {
                     unchanged++;
@@ -178,6 +188,25 @@ public sealed class FileBackupService : IBackupService
 
                 WriteAtomic(file.OriginalPath, bytes);
                 written++;
+            }
+
+            var loadedManifest = Load(backupId);
+            var repairDirectory = BackupPathRules.ResolveBackupDirectory(_backupsRoot, backupId);
+            if (loadedManifest?.Manifest is not null && repairDirectory is not null)
+            {
+                var source = await _source.CaptureAsync(cancellationToken).ConfigureAwait(false);
+                if (source.GameLoopRunning)
+                {
+                    return OperationResult<RestoreReport>.Failure("GameLoop is running. Close it before restoring. This action does not stop the process.");
+                }
+
+                var repairError = RestoreRepairFiles(repairDirectory, loadedManifest.Manifest, source);
+                if (repairError is not null)
+                {
+                    return OperationResult<RestoreReport>.Failure(repairError);
+                }
+
+                written += loadedManifest.Manifest.Quarantine.Count + loadedManifest.Manifest.MetadataCopies.Count;
             }
 
             var report = new RestoreReport
@@ -392,7 +421,20 @@ public sealed class FileBackupService : IBackupService
             plans.Add(PlanFile(directory, file, source));
         }
 
-        var blocked = plans.Any(plan => plan.Disposition == RestoreDisposition.Skip) || plans.Count == 0;
+        var repairPlans = new List<RestoreFilePlan>();
+        foreach (var entry in manifest.Quarantine ?? [])
+        {
+            repairPlans.Add(PlanRepair(directory, QuarantineStore.FolderName, entry, source));
+        }
+
+        foreach (var entry in manifest.MetadataCopies ?? [])
+        {
+            repairPlans.Add(PlanRepair(directory, QuarantineStore.MetadataFolderName, entry, source));
+        }
+
+        plans.AddRange(repairPlans);
+        var blocked = plans.Any(plan => plan.Disposition == RestoreDisposition.Skip)
+            || plans.Count == 0;
         string? warning = null;
         if (source.GameLoopRunning)
         {
@@ -554,7 +596,9 @@ public sealed class FileBackupService : IBackupService
                 Id = loaded.Manifest.Id,
                 Label = loaded.Manifest.Reason,
                 CreatedAt = loaded.Manifest.CreatedAtUtc,
-                SizeBytes = loaded.Manifest.Files.Sum(file => file.SizeBytes),
+                SizeBytes = loaded.Manifest.Files.Sum(file => file.SizeBytes)
+                + (loaded.Manifest.Quarantine ?? []).Sum(file => file.SizeBytes)
+                + (loaded.Manifest.MetadataCopies ?? []).Sum(file => file.SizeBytes),
                 Damaged = false
             });
         }
@@ -620,6 +664,105 @@ public sealed class FileBackupService : IBackupService
             if (string.IsNullOrWhiteSpace(file.OriginalPath) || string.IsNullOrWhiteSpace(file.StoredName) || !BackupPathRules.IsSha256(file.Sha256))
             {
                 return "The manifest has an invalid file entry.";
+            }
+        }
+
+        foreach (var entry in (manifest.Quarantine ?? []).Concat(manifest.MetadataCopies ?? []))
+        {
+            if (string.IsNullOrWhiteSpace(entry.OriginalPath)
+                || string.IsNullOrWhiteSpace(entry.StoredRelativePath)
+                || entry.StoredRelativePath.Contains("..", StringComparison.Ordinal)
+                || !BackupPathRules.IsSha256(entry.Sha256))
+            {
+                return "The manifest has an invalid quarantine entry.";
+            }
+        }
+
+        return null;
+    }
+
+    private static RestoreFilePlan PlanRepair(string? backupDirectory, string folder, StoredRepairFile entry, BackupSourceSnapshot source)
+    {
+        var stored = backupDirectory is null
+            ? null
+            : QuarantineStore.ResolveNested(Path.Combine(backupDirectory, folder), entry.StoredRelativePath);
+        if (stored is null || !File.Exists(stored) || BackupPathRules.IsReparse(stored))
+        {
+            return new RestoreFilePlan
+            {
+                StoredName = folder + "/" + entry.StoredRelativePath,
+                OriginalPath = entry.OriginalPath,
+                Disposition = RestoreDisposition.Skip,
+                Detail = "The quarantined file is missing or is a link."
+            };
+        }
+
+        string hash;
+        try
+        {
+            hash = QuarantineStore.HashFile(stored);
+        }
+        catch (Exception ex)
+        {
+            return new RestoreFilePlan
+            {
+                StoredName = folder + "/" + entry.StoredRelativePath,
+                OriginalPath = entry.OriginalPath,
+                Disposition = RestoreDisposition.Skip,
+                Detail = Describe(ex)
+            };
+        }
+
+        if (!string.Equals(hash, entry.Sha256, StringComparison.OrdinalIgnoreCase))
+        {
+            return new RestoreFilePlan
+            {
+                StoredName = folder + "/" + entry.StoredRelativePath,
+                OriginalPath = entry.OriginalPath,
+                BackupSha256 = hash,
+                Disposition = RestoreDisposition.Skip,
+                Detail = "The quarantined file does not match its manifest hash."
+            };
+        }
+
+        if (!BackupPathRules.IsAllowedTarget(entry.OriginalPath, source.InstallRoots, source.UserDirectories) || BackupPathRules.IsReparse(entry.OriginalPath))
+        {
+            return new RestoreFilePlan
+            {
+                StoredName = folder + "/" + entry.StoredRelativePath,
+                OriginalPath = entry.OriginalPath,
+                Disposition = RestoreDisposition.Skip,
+                Detail = "The original path is not safe to restore."
+            };
+        }
+
+        return new RestoreFilePlan
+        {
+            StoredName = folder + "/" + entry.StoredRelativePath,
+            OriginalPath = entry.OriginalPath,
+            BackupSha256 = hash,
+            Disposition = RestoreDisposition.Replace,
+            Detail = "The quarantined cache would be put back."
+        };
+    }
+
+    private static string? RestoreRepairFiles(string backupDirectory, BackupManifest manifest, BackupSourceSnapshot source)
+    {
+        foreach (var entry in manifest.Quarantine ?? [])
+        {
+            var error = QuarantineStore.Restore(backupDirectory, entry, source.InstallRoots, source.UserDirectories);
+            if (error is not null)
+            {
+                return error;
+            }
+        }
+
+        foreach (var entry in manifest.MetadataCopies ?? [])
+        {
+            var error = QuarantineStore.RestoreMetadata(backupDirectory, entry, source.InstallRoots, source.UserDirectories);
+            if (error is not null)
+            {
+                return error;
             }
         }
 

@@ -3,11 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>GLOptimizer.GameLoop</RootNamespace>
-    <Description>Read-only GameLoop detection, configuration discovery, and App Market inventory. App Market repair is not implemented.</Description>
+    <Description>GameLoop detection, configuration discovery, read-only App Market inventory, and quarantined cache repair.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GLOptimizer.Core\GLOptimizer.Core.csproj" />
+    <ProjectReference Include="..\GLOptimizer.Infrastructure\GLOptimizer.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

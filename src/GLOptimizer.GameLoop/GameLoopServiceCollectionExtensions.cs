@@ -15,6 +15,8 @@ public static class GameLoopServiceCollectionExtensions
         services.AddSingleton<IBackupSource, GameLoopBackupSource>();
         services.AddSingleton<IOptimizationService, OptimizationEngine>();
         services.AddSingleton<IProcessStarter, WindowsProcessStarter>();
+        services.AddSingleton<IProcessControl, WindowsProcessControl>();
+        services.AddSingleton<GameLoopSessionStopper>();
         services.AddSingleton<IGameLoopLauncher, GameLoopLauncher>();
         services.AddSingleton<IOfficialVersionSource, UnavailableOfficialVersionSource>();
         services.AddSingleton<IWindowTitleSource, WindowTitleProbe>();
@@ -26,6 +28,7 @@ public static class GameLoopServiceCollectionExtensions
         services.AddSingleton<CodMobileLaunchDiagnostics>();
         services.AddSingleton<IAppMarketDiagnostics, AppMarketDiagnostics>();
         services.AddSingleton<ICodMobileDiagnostics, CodMobileDiagnostics>();
+        services.AddSingleton<IAppMarketRepair, AppMarketRepairService>();
         return services;
     }
 }

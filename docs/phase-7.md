@@ -35,6 +35,6 @@ The installed version is read again with `PackageVersion`, so a prerelease strin
 | UNKNOWN | A local version is missing or not unambiguous, or the official version is older than the market. The detail in that last case is "Cannot yet distinguish local vs remote." |
 | REMOTE CATALOG ISSUE | Not returned. Phase 8 may use it only after a repair still shows the same mismatch. The message, when that happens, is "Server-side GameLoop catalog issue detected. This cannot safely be modified locally." |
 
-The App Market page shows status, the three versions, the last scan, and the detected issue. **DRY RUN REPAIR** and **REPAIR APP MARKET** are visible and disabled, with the reason "Available in Phase 8." **What will be changed?** lists the cache inventory a later repair would be limited to. Nothing is changed now.
+The App Market page shows status, the three versions, the last scan, and the detected issue. In Phase 7, **DRY RUN REPAIR** and **REPAIR APP MARKET** were visible and disabled. Phase 8 enables them. See [phase-8.md](phase-8.md). **What will be changed?** lists the cache inventory a repair is limited to.
 
 The Diagnostics page adds APP MARKET and COD MOBILE rows with PASS, WARNING, FAILED, or UNKNOWN. The dashboard COD Mobile card uses this comparison. Unknown does not show a mismatch.

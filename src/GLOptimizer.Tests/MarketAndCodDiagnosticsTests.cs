@@ -243,7 +243,7 @@ public class MarketAndCodDiagnosticsTests
         Assert.Equal("COD Mobile version mismatch", findings[0].Title);
         Assert.Equal(FindingOutcome.Failed, findings[0].Outcome);
         Assert.Equal(100, findings[0].Rank);
-        Assert.Contains("Phase 8", findings[0].RecommendedAction, StringComparison.Ordinal);
+        Assert.Contains("App Market page", findings[0].RecommendedAction, StringComparison.Ordinal);
         Assert.Equal("Engine log lines", findings[1].Title);
         Assert.Equal(80, findings[1].Rank);
         Assert.Equal("GameLoop process", findings[2].Title);

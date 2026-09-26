@@ -34,12 +34,10 @@ public class GameLoopLauncherTests
 
             Assert.Equal(OperationStatus.Success, started.Status);
             Assert.Equal(OperationStatus.Failed, rejected.Status);
-            Assert.Equal(OperationStatus.NotImplemented, closed.Status);
-            Assert.Equal(OperationStatus.NotImplemented, restarted.Status);
-            Assert.Equal(1, starter.Calls);
+            Assert.Equal(OperationStatus.Success, closed.Status);
+            Assert.Equal(OperationStatus.Success, restarted.Status);
+            Assert.Equal(2, starter.Calls);
             Assert.Equal(Path.GetFullPath(launcher), starter.LastPath);
-            Assert.Contains("not implemented", closed.Error, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("not implemented", restarted.Error, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

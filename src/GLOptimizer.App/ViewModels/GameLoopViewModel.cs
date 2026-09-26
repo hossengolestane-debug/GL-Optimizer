@@ -2,11 +2,13 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GLOptimizer.App.Services;
 using GLOptimizer.Core.Abstractions;
 using GLOptimizer.Core.Configuration;
 using GLOptimizer.Core.Diagnostics;
 using GLOptimizer.Core.Models;
 using GLOptimizer.Core.Navigation;
+using GLOptimizer.Core.Repair;
 
 namespace GLOptimizer.App.ViewModels;
 
@@ -15,15 +17,17 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
     private readonly IGameLoopDetector _detector;
     private readonly IGameLoopLauncher _launcher;
     private readonly IGameLoopConfigDiscovery _config;
+    private readonly IUserConfirmation _confirm;
     private readonly ScanSession _session = new();
     private GameLoopConfigReport? _report;
 
-    public GameLoopViewModel(IGameLoopDetector detector, IGameLoopLauncher launcher, IGameLoopConfigDiscovery config)
+    public GameLoopViewModel(IGameLoopDetector detector, IGameLoopLauncher launcher, IGameLoopConfigDiscovery config, IUserConfirmation confirm)
         : base(AppPage.GameLoop)
     {
         _detector = detector;
         _launcher = launcher;
         _config = config;
+        _confirm = confirm;
         ConfigRows.FillSettings(ConfigSettings, null);
     }
 
@@ -51,7 +55,7 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
     private string _statusLine = "Scanning…";
 
     [ObservableProperty]
-    private string _actionMessage = "Close and restart are not implemented. They do not stop a process.";
+    private string _actionMessage = "Close and restart stop only processes inside the verified install. Force stop asks again.";
 
     [ObservableProperty]
     private string _configNotice = "Scanning…";
@@ -114,8 +118,29 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
             return;
         }
 
-        var result = await _launcher.RestartAsync(SelectedInstall.Installation);
-        ActionMessage = result.Error ?? "Restart GameLoop is not implemented.";
+        if (!_confirm.Confirm(
+                "Restart GameLoop",
+                "Stop verified GameLoop processes and then start the launcher. A COD Mobile or PUBG Mobile session can close with them. Unrelated processes are not touched."))
+        {
+            ActionMessage = "Restart was not confirmed.";
+            return;
+        }
+
+        var result = await _launcher.RestartAsync(SelectedInstall.Installation, forceConfirmed: false);
+        if (!result.Succeeded && result.Error == ProcessStopMessages.ForceRequired)
+        {
+            if (!_confirm.Confirm("Force stop", "GameLoop did not close. Force stop only processes whose executable path is inside the verified install?"))
+            {
+                ActionMessage = "Force stop was not confirmed. GameLoop was not restarted.";
+                return;
+            }
+
+            result = await _launcher.RestartAsync(SelectedInstall.Installation, forceConfirmed: true);
+        }
+
+        ActionMessage = result.Succeeded
+            ? "GameLoop was stopped and the verified launcher was started."
+            : result.Error ?? "GameLoop could not be restarted.";
     }
 
     [RelayCommand]
@@ -127,8 +152,29 @@ public partial class GameLoopViewModel : PageViewModel, IRefreshable
             return;
         }
 
-        var result = await _launcher.CloseAsync(SelectedInstall.Installation);
-        ActionMessage = result.Error ?? "Close GameLoop is not implemented.";
+        if (!_confirm.Confirm(
+                "Close GameLoop",
+                "Stop GameLoop processes whose executable path is inside the verified install. A COD Mobile or PUBG Mobile session can close with them. Unrelated processes are not touched."))
+        {
+            ActionMessage = "Close was not confirmed.";
+            return;
+        }
+
+        var result = await _launcher.CloseAsync(SelectedInstall.Installation, forceConfirmed: false);
+        if (!result.Succeeded && result.Error == ProcessStopMessages.ForceRequired)
+        {
+            if (!_confirm.Confirm("Force stop", "GameLoop did not close. Force stop only processes whose executable path is inside the verified install?"))
+            {
+                ActionMessage = "Force stop was not confirmed.";
+                return;
+            }
+
+            result = await _launcher.CloseAsync(SelectedInstall.Installation, forceConfirmed: true);
+        }
+
+        ActionMessage = result.Succeeded
+            ? "Verified GameLoop processes were asked to close."
+            : result.Error ?? "GameLoop could not be closed.";
     }
 
     public void Refresh() => _ = RunScanAsync();

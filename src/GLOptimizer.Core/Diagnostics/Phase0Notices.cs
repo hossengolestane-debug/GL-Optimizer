@@ -9,7 +9,7 @@ public static class Phase0Notices
         "This page reads GameLoop metadata and configuration. Restore, on the Backups page, can replace those same files only after a dry run and confirmation.";
 
     public const string NoAppMarketIo =
-        "App Market files under a verified GameLoop install can be read. This build does not delete, clear, or repair them.";
+        "App Market repair moves only re-validated cache into a backup quarantine after confirmation. Metadata is copied and left in place. Game data, packages, and unknown files are not removed.";
 
     public const string NoFrameMetrics =
         "FPS monitoring unavailable with current safe monitoring method.";

@@ -46,7 +46,7 @@
             <Button Content="Restart Engine" IsEnabled="False" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"
                     ToolTip="Not implemented. This would stop a process." ToolTipService.ShowOnDisabled="True" />
             <Button Content="Repair Market" IsEnabled="False" Style="{StaticResource Button.Secondary}"
-                    ToolTip="Available in Phase 8." ToolTipService.ShowOnDisabled="True" />
+                    ToolTip="Use Repair App Market on the App Market page." ToolTipService.ShowOnDisabled="True" />
           </StackPanel>
           <ItemsControl ItemsSource="{Binding Findings}" Margin="0,16,0,0">
             <ItemsControl.ItemTemplate>

@@ -31,6 +31,10 @@ public sealed class BackupManifest
 
     public List<BackupFileEntry> Files { get; set; } = [];
 
+    public List<StoredRepairFile> Quarantine { get; set; } = [];
+
+    public List<StoredRepairFile> MetadataCopies { get; set; } = [];
+
     public Dictionary<string, string> RegistryValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public List<string> UnmappedRegistryKeys { get; set; } = [];
@@ -96,6 +100,20 @@ public sealed class BackupDetails
 public sealed class BackupSourceFile
 {
     public required string Path { get; init; }
+}
+
+/// <summary>
+/// A file inside a repair backup. Quarantine entries were moved out of the install. Metadata copies were only copied.
+/// </summary>
+public sealed class StoredRepairFile
+{
+    public string OriginalPath { get; set; } = string.Empty;
+
+    public string StoredRelativePath { get; set; } = string.Empty;
+
+    public string Sha256 { get; set; } = string.Empty;
+
+    public long SizeBytes { get; set; }
 }
 
 public sealed class BackupSourceSnapshot
