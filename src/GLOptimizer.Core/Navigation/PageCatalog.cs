@@ -6,14 +6,14 @@ public static class PageCatalog
 {
     public static IReadOnlyList<PageInfo> All { get; } =
     [
-        new(AppPage.Dashboard, "Dashboard", "Overview", "Status of this install. Live tuning is not active in this build."),
+        new(AppPage.Dashboard, "Dashboard", "Overview", "Read-only hardware and GameLoop status. Optimization is not active."),
         new(AppPage.Optimize, "Optimize", "Performance", "Optimization actions are not available in this phase."),
-        new(AppPage.Monitoring, "Monitoring", "Performance", "Hardware and frame metrics are not collected in this phase."),
-        new(AppPage.GameLoop, "GameLoop", "GameLoop", "Detection is not implemented. This build does not read or modify GameLoop files."),
+        new(AppPage.Monitoring, "Monitoring", "Performance", "Hardware is read from this PC. Frame metrics are not collected."),
+        new(AppPage.GameLoop, "GameLoop", "GameLoop", "Read-only detection of GameLoop installs. Config files are not modified."),
         new(AppPage.AppMarket, "App Market", "GameLoop", "Diagnostics are not implemented. This build does not read or modify App Market files."),
-        new(AppPage.CodMobile, "COD Mobile", "Games", "No game data is read in this phase."),
-        new(AppPage.PubgMobile, "PUBG Mobile", "Games", "No game data is read in this phase."),
-        new(AppPage.Diagnostics, "Diagnostics", "System", "Checks for this app's own files. Game clients are not inspected."),
+        new(AppPage.CodMobile, "COD Mobile", "Games", "Install presence is read from GameLoop local data when a verified install exists."),
+        new(AppPage.PubgMobile, "PUBG Mobile", "Games", "Install presence is read from GameLoop local data when a verified install exists."),
+        new(AppPage.Diagnostics, "Diagnostics", "System", "Local files, hardware, and read-only GameLoop detection."),
         new(AppPage.Backups, "Backups", "System", "Backup and restore are not implemented."),
         new(AppPage.Logs, "Logs", "System", "Entries written by this app."),
         new(AppPage.Settings, "Settings", "System", "Local preferences for GL Optimizer.")

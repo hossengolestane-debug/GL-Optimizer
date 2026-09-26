@@ -3,7 +3,6 @@
                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                 xmlns:views="clr-namespace:GLOptimizer.App.Views"
                 xmlns:controls="clr-namespace:GLOptimizer.App.Controls"
-                xmlns:diag="clr-namespace:GLOptimizer.Core.Diagnostics;assembly=GLOptimizer.Core"
                 Background="Transparent">
   <ScrollViewer Style="{StaticResource Scroll.Page}">
     <StackPanel>
@@ -14,7 +13,7 @@
                          StatusText="{Binding StatusText}"
                          Detail="{Binding CardDetail}"
                          Monogram="{Binding Monogram}"
-                         Kind="{x:Static diag:StatusKind.Unavailable}" />
+                         Kind="{Binding Kind}" />
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
         <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" />
       </Border>

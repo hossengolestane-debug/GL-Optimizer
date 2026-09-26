@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>GLOptimizer.GameLoop</RootNamespace>
-    <Description>GameLoop and App Market contracts. Phase 0 contains stubs only.</Description>
+    <Description>Read-only GameLoop detection. App Market checks remain unimplemented.</Description>
   </PropertyGroup>
 
   <ItemGroup>

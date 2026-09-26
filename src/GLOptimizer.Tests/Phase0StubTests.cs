@@ -10,7 +10,7 @@ namespace GLOptimizer.Tests;
 public class Phase0StubTests
 {
     [Fact]
-    public void Registered_stubs_return_not_implemented_and_create_no_files()
+    public async Task Detection_is_read_only_and_remaining_stubs_create_no_files()
     {
         using var temp = new TempAppData();
         var services = new ServiceCollection();
@@ -21,9 +21,9 @@ public class Phase0StubTests
 
         var before = Snapshot(temp.Root);
 
-        var hardware = provider.GetRequiredService<IHardwareService>().TryGetReport();
+        var hardware = await provider.GetRequiredService<IHardwareService>().GetReportAsync();
         var frames = provider.GetRequiredService<IFrameMetricsProvider>().TryGetLatest();
-        var gameLoop = provider.GetRequiredService<IGameLoopDetector>().Detect();
+        var gameLoop = await provider.GetRequiredService<IGameLoopDetector>().DetectAsync();
         var market = provider.GetRequiredService<IAppMarketDiagnostics>().Check();
         var backups = provider.GetRequiredService<IBackupService>();
         var listed = backups.List();
@@ -32,17 +32,18 @@ public class Phase0StubTests
         var actions = optimization.ListActions();
         var applied = optimization.Apply("noop");
 
-        AssertNotImplemented(hardware);
+        Assert.Equal(OperationStatus.Success, hardware.Status);
+        Assert.NotNull(hardware.Value);
+        Assert.False(string.IsNullOrWhiteSpace(hardware.Value.Architecture));
+        Assert.Equal(OperationStatus.Success, gameLoop.Status);
+        Assert.NotNull(gameLoop.Value);
         AssertNotImplemented(frames);
-        AssertNotImplemented(gameLoop);
         AssertNotImplemented(market);
         AssertNotImplemented(listed);
         AssertNotImplemented(actions);
         Assert.Equal(OperationStatus.NotImplemented, created.Status);
         Assert.Equal(OperationStatus.NotImplemented, applied.Status);
-        Assert.Null(hardware.Value);
         Assert.Null(frames.Value);
-        Assert.Null(gameLoop.Value);
         Assert.Null(market.Value);
         Assert.Null(listed.Value);
         Assert.Null(actions.Value);

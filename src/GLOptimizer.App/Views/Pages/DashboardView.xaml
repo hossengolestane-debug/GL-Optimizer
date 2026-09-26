@@ -12,15 +12,23 @@
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <StackPanel Margin="0,0,24,0">
-          <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
+            <controls:StatusBadge Margin="16,0,0,0" VerticalAlignment="Center" Text="{Binding OverallText}" Kind="{Binding OverallKind}" />
+          </StackPanel>
           <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
-          <TextBlock Text="{Binding LogPath}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding LogPath}" />
+          <TextBlock Text="{Binding StatusLine}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" />
+          <TextBlock Text="{Binding LogPath}" Style="{StaticResource Text.Caption}" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding LogPath}" />
         </StackPanel>
-        <Button Grid.Column="1" Content="OPTIMIZE NOW" VerticalAlignment="Top"
-                Command="{Binding OptimizeNowCommand}"
-                Style="{StaticResource Button.Primary}"
-                ToolTip="Optimization is not available in this phase."
-                ToolTipService.ShowOnDisabled="True" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+          <Button Content="Scan" Command="{Binding ScanCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="Cancel" Command="{Binding CancelScanCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="OPTIMIZE NOW"
+                  Command="{Binding OptimizeNowCommand}"
+                  Style="{StaticResource Button.Primary}"
+                  ToolTip="Optimization is not available in this phase."
+                  ToolTipService.ShowOnDisabled="True" />
+        </StackPanel>
       </Grid>
 
       <ItemsControl ItemsSource="{Binding Cards}" Margin="0,16,0,8">
@@ -35,6 +43,51 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+
+      <TextBlock Text="Games" Style="{StaticResource Text.Section}" Margin="8,12,8,8" />
+      <ItemsControl ItemsSource="{Binding GameCards}" Margin="0,0,0,8">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <controls:GameCard Margin="8,0,8,12"
+                               Title="{Binding Title}"
+                               Subtitle="{Binding Subtitle}"
+                               StatusText="{Binding StatusText}"
+                               Detail="{Binding Detail}"
+                               Monogram="{Binding Monogram}"
+                               Kind="{Binding Kind}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TextBlock Text="GameLoop installations" Style="{StaticResource Text.Section}" Margin="8,4,8,8" />
+      <TextBlock Text="No verified GameLoop install was found." Style="{StaticResource Text.Subtitle}" Margin="8,0,8,8"
+                 Visibility="{Binding HasInstalls, Converter={StaticResource InverseBoolToVis}}" />
+      <ItemsControl ItemsSource="{Binding Installs}" Visibility="{Binding HasInstalls, Converter={StaticResource BoolToVis}}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <controls:GameCard Margin="8,0,8,12"
+                               Title="{Binding Path}"
+                               Subtitle="{Binding Summary}"
+                               StatusText="{Binding Status}"
+                               Detail="{Binding Detail}"
+                               Monogram="G"
+                               Kind="{Binding Kind}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Border Style="{StaticResource Card}" Margin="8,8,8,0">
+        <StackPanel>
+          <TextBlock Text="Hardware" Style="{StaticResource Text.Section}" Margin="0,0,0,8" />
+          <ItemsControl ItemsSource="{Binding HardwareRows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <controls:DiagnosticRow Title="{Binding Title}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" Kind="{Binding BadgeKind}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
 
       <Grid Margin="0,8,0,0">
         <Grid.ColumnDefinitions>

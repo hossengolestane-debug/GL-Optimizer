@@ -1,6 +1,6 @@
 # Installer
 
-Phase 0 does not ship an installer.
+Phase 1 does not ship an installer.
 
 On Windows, publish a framework-dependent x64 build with:
 

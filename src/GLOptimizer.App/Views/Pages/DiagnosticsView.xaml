@@ -15,7 +15,10 @@
           <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
           <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
         </StackPanel>
-        <Button Grid.Column="1" Content="Run checks" VerticalAlignment="Top" Command="{Binding RunChecksCommand}" Style="{StaticResource Button.Secondary}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+          <Button Content="Run checks" Command="{Binding RunChecksCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+          <Button Content="Cancel" Command="{Binding CancelScanCommand}" Style="{StaticResource Button.Secondary}" />
+        </StackPanel>
       </Grid>
       <Border Style="{StaticResource Card}" Margin="0,20,0,0">
         <ItemsControl ItemsSource="{Binding Rows}">

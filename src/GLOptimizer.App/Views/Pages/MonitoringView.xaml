@@ -6,9 +6,19 @@
                 Background="Transparent">
   <ScrollViewer Style="{StaticResource Scroll.Page}">
     <StackPanel>
-      <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
-      <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,16" />
-      <ItemsControl ItemsSource="{Binding Cards}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Margin="0,0,24,0">
+          <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
+          <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
+          <TextBlock Text="{Binding StatusLine}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" />
+        </StackPanel>
+        <Button Grid.Column="1" Content="Cancel" VerticalAlignment="Top" Command="{Binding CancelScanCommand}" Style="{StaticResource Button.Secondary}" />
+      </Grid>
+      <ItemsControl ItemsSource="{Binding Cards}" Margin="0,16,0,0">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
             <UniformGrid Columns="2" />
@@ -20,7 +30,19 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-      <controls:ChartCard Margin="0,8,0,0" Title="{Binding ChartTitle}" Subtitle="{Binding ChartSubtitle}" EmptyMessage="{Binding ChartEmptyMessage}" HasData="{Binding ChartHasData}" />
+      <Border Style="{StaticResource Card}" Margin="0,8,0,0">
+        <StackPanel>
+          <TextBlock Text="Hardware" Style="{StaticResource Text.Section}" Margin="0,0,0,8" />
+          <ItemsControl ItemsSource="{Binding HardwareRows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <controls:DiagnosticRow Title="{Binding Title}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" Kind="{Binding BadgeKind}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+      <controls:ChartCard Margin="0,16,0,0" Title="{Binding ChartTitle}" Subtitle="{Binding ChartSubtitle}" EmptyMessage="{Binding ChartEmptyMessage}" HasData="{Binding ChartHasData}" />
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
         <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" />
       </Border>

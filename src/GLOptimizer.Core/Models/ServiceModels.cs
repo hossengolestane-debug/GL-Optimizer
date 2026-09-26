@@ -1,19 +1,41 @@
 namespace GLOptimizer.Core.Models;
 
 /// <summary>
-/// Populated only by a real hardware provider. Phase 0 does not fill this type.
+/// Values a hardware probe actually returned. Null fields were not reported.
 /// </summary>
 public sealed class HardwareReport
 {
     public string? CpuName { get; init; }
 
+    public int? PhysicalCores { get; init; }
+
+    public int? LogicalCores { get; init; }
+
     public string? GpuName { get; init; }
 
+    public long? GpuMemoryBytes { get; init; }
+
     public long? TotalMemoryBytes { get; init; }
+
+    public string? StorageType { get; init; }
+
+    public int? MonitorRefreshHz { get; init; }
+
+    public string? WindowsVersion { get; init; }
+
+    public string? WindowsBuild { get; init; }
+
+    public string? Architecture { get; init; }
+
+    public bool? VirtualizationFirmwareEnabled { get; init; }
+
+    public bool? HypervisorPresent { get; init; }
+
+    public IReadOnlyList<string> Warnings { get; init; } = [];
 }
 
 /// <summary>
-/// Populated only by a real frame provider. Phase 0 does not fill this type.
+/// Populated only by a real frame provider. Frame capture is not part of detection.
 /// </summary>
 public sealed class FrameSample
 {
@@ -25,13 +47,62 @@ public sealed class FrameSample
 }
 
 /// <summary>
-/// Populated only after a real, read-only detector exists. Phase 0 does not search for GameLoop.
+/// One verified GameLoop install. Version and engine stay null when they were not read.
 /// </summary>
 public sealed class GameLoopInstallation
 {
     public string? InstallPath { get; init; }
 
     public string? Version { get; init; }
+
+    public string? Engine { get; init; }
+
+    public GameRunStatus RunStatus { get; init; }
+
+    public string? LauncherPath { get; init; }
+
+    public IReadOnlyList<GameLoopProcessInfo> Processes { get; init; } = [];
+}
+
+/// <summary>
+/// Read-only result of a GameLoop scan. Empty installations means the search finished and found nothing.
+/// </summary>
+public sealed class GameLoopScan
+{
+    public IReadOnlyList<GameLoopInstallation> Installations { get; init; } = [];
+
+    public MobileGamePresence PubgMobile { get; init; } = new();
+
+    public MobileGamePresence CodMobile { get; init; } = new();
+
+    /// <summary>
+    /// True when an uninstall entry names GameLoop but no verified install directory was found.
+    /// </summary>
+    public bool BrokenRegistration { get; init; }
+
+    public IReadOnlyList<string> Warnings { get; init; } = [];
+}
+
+public sealed class GameLoopProcessInfo
+{
+    public int ProcessId { get; init; }
+
+    public required string ProcessName { get; init; }
+
+    public required string ExecutablePath { get; init; }
+}
+
+public sealed class MobileGamePresence
+{
+    public GamePresenceStatus Status { get; init; }
+
+    public string? Version { get; init; }
+
+    public string? PackageId { get; init; }
+
+    public string? Path { get; init; }
+
+    public string? Detail { get; init; }
 }
 
 public sealed class AppMarketStatus

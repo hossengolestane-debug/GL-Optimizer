@@ -2,18 +2,21 @@
 
 GameLoop Performance & App Market Utility.
 
-Phase 0 is the foundation: a Windows desktop shell, local settings, logging, and navigation. It is a diagnostics and configuration utility. It does not tune a game, and it does not pretend to.
+Phase 1 is a diagnostics utility: a Windows desktop shell plus read-only hardware and GameLoop detection. It does not tune a game, and it does not pretend to.
 
 ## What this build does
 
 - Opens a custom-chrome window (default 1280×800, minimum 1100×700) with a collapsible sidebar.
 - Navigates to Dashboard, Optimize, Monitoring, GameLoop, App Market, COD Mobile, PUBG Mobile, Diagnostics, Backups, Logs, and Settings.
-- Shows status from real service results. Phase 0 services return **not implemented**, so cards stay at "—" instead of invented hardware, FPS, or health scores.
+- Shows hardware that Windows actually returned. Missing CPU, GPU, memory, storage, or refresh fields stay **Unknown**.
+- Searches for GameLoop without assuming one install path. A directory counts only when a known launcher file is present. Version and engine stay empty unless they were read.
+- Shows PUBG Mobile and COD Mobile as Installed, Not found, or Unknown. Versions come only from unambiguous local version files.
+- Sets the dashboard to GOOD, WARNING, or ACTION REQUIRED from those findings. GameLoop not found is WARNING. There is no version-mismatch badge in this phase.
 - Writes JSON settings to `%LocalAppData%\GLOptimizer\settings.json`.
 - Writes rolling logs to `%LocalAppData%\GLOptimizer\Logs\`.
 - Catches unhandled UI exceptions and shows a short message. The stack trace goes to the log.
 
-**OPTIMIZE NOW** stays disabled. Backup, GameLoop detection, App Market checks, hardware inventory, and frame metrics are stubs. They do not read or write GameLoop files, App Market files, or game clients.
+**OPTIMIZE NOW** stays disabled. **Close** and **Restart** are not implemented and do not kill a process. **Start** launches only a launcher file inside a verified install. Backup, App Market checks, and frame metrics are still not implemented. This build does not write GameLoop or App Market files.
 
 ## Safety
 
@@ -26,7 +29,7 @@ GL Optimizer must not:
 - patch game binaries
 - imitate GameLoop server responses
 
-Phase 0 also must not touch GameLoop configuration or App Market files. The stubs return `OperationStatus.NotImplemented` and do not query devices or guess install paths. See [docs/safety.md](docs/safety.md).
+Phase 1 reads install metadata and process paths. It does not write GameLoop configuration or App Market files. See [docs/safety.md](docs/safety.md).
 
 Developer tools (a debug log button and local path display) are compiled only into Debug builds (`#if DEBUG`).
 
@@ -68,8 +71,8 @@ src/
   GLOptimizer.App/             WPF shell, theme, pages, composition root
   GLOptimizer.Core/            models, results, paths, interfaces
   GLOptimizer.Infrastructure/  DI, JSON settings, rolling file log
-  GLOptimizer.GameLoop/        Phase 0 stubs only
-  GLOptimizer.Monitoring/      Phase 0 stubs only
+  GLOptimizer.GameLoop/        read-only GameLoop detection; App Market still unimplemented
+  GLOptimizer.Monitoring/      read-only hardware detection; frame metrics still unimplemented
   GLOptimizer.Tests/
 installer/                     not shipped yet
 assets/                        monochrome mark
@@ -88,17 +91,10 @@ Settings and logs:
 
 Default retention is 14 days. The active log rotates after 2 MB. Both can be changed on the Settings page (1–90 days, 1–50 MB).
 
-## Phase 1
+## Phase 1 and Phase 2
 
-Phase 1 should stay inside the safety boundary:
+Phase 1 detection is described in [docs/phase-1.md](docs/phase-1.md). On Linux and macOS the solution compiles and the tests run, but WMI, the registry, and the WPF window do not. Those hosts report architecture only and do not invent CPU, GPU, or memory numbers.
 
-1. Read-only GameLoop install detection, with no config writes.
-2. Read-only hardware inventory through documented Windows APIs, shown only when a query actually returns a value.
-3. An explicit, user-confirmed backup of files the user selects. No silent restore.
-4. A monitoring design that does not inject into a process. If a metric cannot be collected that way, the UI keeps showing "not implemented".
-5. A Windows UI pass for snap layout, high contrast, and the installed package.
-6. An MSIX or WiX installer.
+Phase 2 is the next slice: confirmed backups, still-read-only App Market checks, frame metrics that do not inject, and a Windows UI pass. **OPTIMIZE NOW** stays disabled until each action is a reviewed change. See [docs/phase-2.md](docs/phase-2.md).
 
-Do not enable **OPTIMIZE NOW** until each action is a real, reviewed change that does not touch game memory, anti-cheat, or GameLoop servers.
-
-More detail is in [docs/architecture.md](docs/architecture.md) and [docs/phase-1.md](docs/phase-1.md).
+More detail is in [docs/architecture.md](docs/architecture.md).

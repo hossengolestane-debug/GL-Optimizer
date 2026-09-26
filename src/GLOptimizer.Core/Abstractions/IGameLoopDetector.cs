@@ -4,9 +4,9 @@ using GLOptimizer.Core.Results;
 namespace GLOptimizer.Core.Abstractions;
 
 /// <summary>
-/// GameLoop discovery. Phase 0 must not read or modify GameLoop files.
+/// Read-only GameLoop discovery. Implementations must not write config files or invent versions.
 /// </summary>
 public interface IGameLoopDetector
 {
-    OperationResult<GameLoopInstallation> Detect();
+    Task<OperationResult<GameLoopScan>> DetectAsync(CancellationToken cancellationToken = default);
 }
