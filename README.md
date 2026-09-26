@@ -83,7 +83,7 @@ dotnet test GLOptimizer.sln -c Release
 
 ## CI artifacts
 
-`.github/workflows/build.yml` runs `dotnet test` on Ubuntu. `.github/workflows/windows-installer.yml` runs on `windows-latest` for push, pull request, and manual dispatch. It builds, tests, publishes, compiles the installer, and smoke-tests install, `--smoke-test`, and uninstall.
+`.github/workflows/build.yml` runs `dotnet test` on Ubuntu. `.github/workflows/windows-installer.yml` runs on `windows-latest` for push, pull request, and manual dispatch. It builds, tests, publishes, compiles the installer, and smoke-tests install, `--smoke-test` (off-screen layout of every page, including a missing GameLoop install), and uninstall.
 
 On a successful run, open the workflow run on GitHub and download:
 

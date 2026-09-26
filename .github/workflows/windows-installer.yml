@@ -87,10 +87,14 @@ jobs:
           $out = Join-Path $env:TEMP "glopt-smoke-out.txt"
           $err = Join-Path $env:TEMP "glopt-smoke-err.txt"
           $smoke = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
-          Wait-Exit $smoke 90 "Smoke test"
+          Wait-Exit $smoke 180 "Smoke test"
           Write-Host "smoke stdout:"; if (Test-Path $out) { Get-Content $out }
           Write-Host "smoke stderr:"; if (Test-Path $err) { Get-Content $err }
-          if ($smoke.ExitCode -ne 0) { throw "Smoke test exited $($smoke.ExitCode)" }
+          $userLogDir = Join-Path $env:LOCALAPPDATA "GLOptimizer\Logs"
+          if ($smoke.ExitCode -ne 0) {
+            Get-ChildItem $userLogDir -Filter *.log -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "---- $($_.Name) ----"; Get-Content $_.FullName -Tail 120 }
+            throw "Smoke test exited $($smoke.ExitCode)"
+          }
           $userData = Join-Path $env:LOCALAPPDATA "GLOptimizer"
           if (-not (Test-Path $userData)) { throw "User data was not created by startup." }
           $logs = Get-ChildItem (Join-Path $userData "Logs") -Filter *.log -ErrorAction SilentlyContinue

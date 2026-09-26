@@ -29,7 +29,11 @@ Verified by tests and by reading the startup path, not by a profiler on hardware
 - `MonitoringCoordinator` does not start the sampler when `MonitoringEnabled` is false. That case is covered by `Coordinator_does_not_sample_when_monitoring_is_disabled`.
 - `LaunchSessionWatcher.Start` returns without scheduling a delay when no journal exists. `Launch_watcher_does_not_poll_when_no_journal_exists` asserts `IsWatching` is false, then true only after a journal is saved.
 - Minimizing the window hides it. It does not start a timer. Sampling still follows the page and the monitoring switch.
-- `--smoke-test` sets `SmokeTest.Active`, which blocks the sampler and the watcher.
+- `--smoke-test` sets `SmokeTest.Active`, which blocks the sampler and the watcher. Page refreshes still run, including the read-only scan used when GameLoop is not installed.
+
+## Startup crash
+
+`Button.Chrome` and the text styles set `Foreground` with `{StaticResource Brush.Text.Primary}`. Those setters live in `Controls.xaml` and `Typography.xaml`. A `StaticResource` inside a style setter resolves only in that dictionary and the dictionaries it merges, not in a sibling merged by `Theme.xaml`. The deferred reference became `DependencyProperty.UnsetValue`, and the first `TextBlock` measure during `Window.Show` threw. `Colors.xaml` is now merged into both dictionaries. `--smoke-test` shows the window off-screen, measures and arranges it, opens every page, and fails on a binding trace, a resource exception, or a missing "GameLoop was not found." result. A page that throws during measure is logged and replaced in that frame; the shell stays up, and the smoke test still fails.
 
 ## Layout
 

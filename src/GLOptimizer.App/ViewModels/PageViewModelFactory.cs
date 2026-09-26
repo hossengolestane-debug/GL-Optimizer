@@ -19,7 +19,11 @@ public sealed class PageViewModelFactory : IPageViewModelFactory, IDisposable
     {
         if (_cache.TryGetValue(page, out var existing))
         {
-            Refresh(existing);
+            if (!SmokeTest.Active)
+            {
+                Refresh(existing);
+            }
+
             return existing;
         }
 
@@ -60,7 +64,7 @@ public sealed class PageViewModelFactory : IPageViewModelFactory, IDisposable
 
     private static void Refresh(IPageViewModel page)
     {
-        if (SmokeTest.Active || page is not IRefreshable refreshable)
+        if (page is not IRefreshable refreshable)
         {
             return;
         }

@@ -1,7 +1,8 @@
 namespace GLOptimizer.Core.Diagnostics;
 
 /// <summary>
-/// Headless startup used by the Windows installer workflow. It must not scan or write GameLoop.
+/// Startup used by the Windows installer workflow. It lays the main window out off-screen and
+/// may run read-only page refreshes. It must not write GameLoop files, sample performance, or watch a launch journal.
 /// </summary>
 public static class SmokeTest
 {

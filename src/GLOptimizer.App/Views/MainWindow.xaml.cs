@@ -16,8 +16,8 @@ public partial class MainWindow : Window
     public MainWindow(MainViewModel viewModel)
     {
         _viewModel = viewModel;
-        InitializeComponent();
         DataContext = viewModel;
+        InitializeComponent();
         SidebarHost.Width = viewModel.IsSidebarCollapsed ? CollapsedWidth : ExpandedWidth;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }

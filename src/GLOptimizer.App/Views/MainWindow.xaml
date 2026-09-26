@@ -4,6 +4,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:vm="clr-namespace:GLOptimizer.App.ViewModels"
         xmlns:pages="clr-namespace:GLOptimizer.App.Views.Pages"
+        xmlns:controls="clr-namespace:GLOptimizer.App.Controls"
         Title="GL Optimizer"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
         Width="1280"
@@ -149,7 +150,7 @@
           </DockPanel>
         </Border>
         <Grid Grid.Column="1">
-          <ContentControl Content="{Binding CurrentViewModel}" />
+          <controls:PageHost Content="{Binding CurrentViewModel}" />
           <Border VerticalAlignment="Bottom" Margin="24,0,24,16" Background="{StaticResource Brush.Surface.1}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" Padding="16,12"
                   Visibility="{Binding HasToast, Converter={StaticResource BoolToVis}}">
             <TextBlock Text="{Binding ToastText}" TextWrapping="Wrap" />
