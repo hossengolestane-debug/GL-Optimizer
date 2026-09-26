@@ -1,0 +1,79 @@
+<views:PageView x:Class="GLOptimizer.App.Views.Pages.BackupsView"
+                xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:views="clr-namespace:GLOptimizer.App.Views"
+                xmlns:controls="clr-namespace:GLOptimizer.App.Controls"
+                Background="Transparent">
+  <ScrollViewer Style="{StaticResource Scroll.Page}">
+    <StackPanel>
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" MinWidth="120" MaxWidth="280" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Margin="0,0,24,0">
+          <TextBlock Text="{Binding Title}" Style="{StaticResource Text.PageTitle}" />
+          <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
+          <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+        <TextBox Grid.Column="1" Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}"
+                 VerticalAlignment="Top" Margin="0,0,8,0"
+                 ToolTip="Reason stored in the manifest" />
+        <Button Grid.Column="2" Content="Create backup now" VerticalAlignment="Top"
+                Command="{Binding CreateBackupCommand}"
+                Style="{StaticResource Button.Primary}" />
+      </Grid>
+
+      <TextBlock Text="{Binding EmptyMessage}" Style="{StaticResource Text.Subtitle}" Margin="0,20,0,0"
+                 Visibility="{Binding HasBackups, Converter={StaticResource InverseBoolToVis}}" />
+      <ItemsControl ItemsSource="{Binding Items}" Margin="0,20,0,0" Visibility="{Binding HasBackups, Converter={StaticResource BoolToVis}}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="0,0,0,8">
+              <controls:BackupItem Label="{Binding Name}" When="{Binding When}" SizeText="{Binding SizeText}" StatusText="{Binding StatusText}" Kind="{Binding Status}" />
+              <StackPanel Orientation="Horizontal" Margin="0,-4,0,8">
+                <Button Content="Details" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"
+                        Command="{Binding DataContext.ShowDetailsCommand, RelativeSource={RelativeSource AncestorType=views:PageView}}"
+                        CommandParameter="{Binding Id}" />
+                <Button Content="Restore" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"
+                        Command="{Binding DataContext.PreviewRestoreCommand, RelativeSource={RelativeSource AncestorType=views:PageView}}"
+                        CommandParameter="{Binding Id}" />
+                <Button Content="Delete" Style="{StaticResource Button.Secondary}"
+                        Command="{Binding DataContext.DeleteBackupCommand, RelativeSource={RelativeSource AncestorType=views:PageView}}"
+                        CommandParameter="{Binding Id}" />
+              </StackPanel>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Border Style="{StaticResource Card}" Margin="0,8,0,0">
+        <StackPanel>
+          <TextBlock Text="Manifest" Style="{StaticResource Text.Section}" />
+          <TextBlock Text="{Binding DetailsText}" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding HasPreview, Converter={StaticResource BoolToVis}}">
+        <StackPanel>
+          <TextBlock Text="Dry run" Style="{StaticResource Text.Section}" />
+          <ItemsControl ItemsSource="{Binding PreviewRows}" Margin="0,8,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <controls:DiagnosticRow Title="{Binding Title}" Detail="{Binding Detail}" BadgeText="{Binding BadgeText}" Kind="{Binding BadgeKind}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Content="Confirm restore" Margin="0,12,0,0" HorizontalAlignment="Left"
+                  Style="{StaticResource Button.Primary}"
+                  Command="{Binding ConfirmRestoreCommand}" />
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</views:PageView>

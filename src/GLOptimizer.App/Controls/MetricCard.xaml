@@ -1,0 +1,24 @@
+<UserControl x:Class="GLOptimizer.App.Controls.MetricCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:GLOptimizer.App.Controls"
+             x:Name="Root"
+             Background="Transparent">
+  <Border Style="{StaticResource Card}" MinHeight="132">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <Grid>
+        <TextBlock Text="{Binding Title, ElementName=Root}" Style="{StaticResource Text.Caption}" VerticalAlignment="Center" Margin="0,0,88,0" />
+        <controls:StatusBadge HorizontalAlignment="Right" VerticalAlignment="Top"
+                              Text="{Binding BadgeText, ElementName=Root}"
+                              Kind="{Binding BadgeKind, ElementName=Root}" />
+      </Grid>
+      <TextBlock Grid.Row="1" Text="{Binding Value, ElementName=Root}" FontSize="28" FontWeight="SemiBold" Margin="0,14,0,0" />
+      <TextBlock Grid.Row="2" Text="{Binding Detail, ElementName=Root}" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" />
+    </Grid>
+  </Border>
+</UserControl>

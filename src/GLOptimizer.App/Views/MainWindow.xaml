@@ -1,0 +1,179 @@
+<Window x:Class="GLOptimizer.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:vm="clr-namespace:GLOptimizer.App.ViewModels"
+        xmlns:pages="clr-namespace:GLOptimizer.App.Views.Pages"
+        xmlns:controls="clr-namespace:GLOptimizer.App.Controls"
+        Title="GL Optimizer"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
+        Width="1280"
+        Height="800"
+        MinWidth="1100"
+        MinHeight="700"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="{StaticResource Brush.Background}"
+        Foreground="{StaticResource Brush.Text.Primary}"
+        FontFamily="Segoe UI"
+        FontSize="13"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
+  <shell:WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="48"
+                        ResizeBorderThickness="6"
+                        GlassFrameThickness="0"
+                        CornerRadius="0"
+                        UseAeroCaptionButtons="False" />
+  </shell:WindowChrome.WindowChrome>
+  <Window.Resources>
+    <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+      <pages:DashboardView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:OptimizeViewModel}">
+      <pages:OptimizeView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:MonitoringViewModel}">
+      <pages:MonitoringView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:GameLoopViewModel}">
+      <pages:GameLoopView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:AppMarketViewModel}">
+      <pages:AppMarketView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:GamePageViewModel}">
+      <pages:GamePageView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:DiagnosticsViewModel}">
+      <pages:DiagnosticsView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:BackupsViewModel}">
+      <pages:BackupsView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:LogsViewModel}">
+      <pages:LogsView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ActivityViewModel}">
+      <pages:ActivityView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+      <pages:SettingsView />
+    </DataTemplate>
+  </Window.Resources>
+
+  <Border BorderBrush="{StaticResource Brush.Border}">
+    <Border.Style>
+      <Style TargetType="Border">
+        <Setter Property="BorderThickness" Value="1" />
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+            <Setter Property="BorderThickness" Value="0" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+    </Border.Style>
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="48" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Grid Background="{StaticResource Brush.Background}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0">
+          <Border Width="16" Height="16" CornerRadius="4" BorderBrush="{StaticResource Brush.Text.Primary}" BorderThickness="1.5" VerticalAlignment="Center" />
+          <TextBlock Text="GL Optimizer" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding PhaseLabel}" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="12" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal">
+          <Button Style="{StaticResource Button.Chrome}" Content="&#xE921;" Click="MinimizeClick" ToolTip="Minimize" AutomationProperties.Name="Minimize" shell:WindowChrome.IsHitTestVisibleInChrome="True" />
+          <Button Style="{StaticResource Button.Chrome}" Click="MaximizeClick" ToolTip="Maximize" AutomationProperties.Name="Maximize" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <TextBlock x:Name="MaximizeIcon" Text="&#xE922;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+          </Button>
+          <Button Style="{StaticResource Button.ChromeClose}" Content="&#xE8BB;" Click="CloseClick" ToolTip="Close" AutomationProperties.Name="Close" shell:WindowChrome.IsHitTestVisibleInChrome="True" />
+        </StackPanel>
+      </Grid>
+      <Border Grid.Row="0" Height="1" VerticalAlignment="Bottom" Background="{StaticResource Brush.Border}" />
+
+      <Grid Grid.Row="1">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border x:Name="SidebarHost" Width="240" Background="{StaticResource Brush.Surface.1}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0" ClipToBounds="True">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,12">
+              <Button Style="{StaticResource Button.Secondary}" Margin="12,0" HorizontalAlignment="Stretch" Command="{Binding ToggleSidebarCommand}" ToolTip="{Binding CollapseToolTip}" AutomationProperties.Name="{Binding CollapseToolTip}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="{Binding CollapseGlyph}" FontSize="12" Width="20" VerticalAlignment="Center" />
+                  <TextBlock Text="Collapse" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVis}}" />
+                </StackPanel>
+              </Button>
+              <TextBlock Text="{Binding VersionLabel}" Margin="20,8,12,0" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"
+                         Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVis}}" />
+            </StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding Sections}" Margin="0,8,0,8">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="{x:Type vm:NavigationSectionViewModel}">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Title}" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="20,16,12,6"
+                                 Visibility="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVis}}" />
+                      <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate DataType="{x:Type vm:NavigationItemViewModel}">
+                            <Button Style="{StaticResource Button.Nav}"
+                                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding Page}"
+                                    ToolTip="{Binding Title}"
+                                    AutomationProperties.Name="{Binding Title}">
+                              <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="{Binding IconGlyph}" FontSize="16" Width="20" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Title}" Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVis}}" />
+                              </StackPanel>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+        <Grid Grid.Column="1">
+          <controls:PageHost Content="{Binding CurrentViewModel}" />
+          <Border VerticalAlignment="Bottom" Margin="24,0,24,16" Background="{StaticResource Brush.Surface.1}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" Padding="16,12"
+                  Visibility="{Binding HasToast, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding ToastText}" TextWrapping="Wrap" />
+          </Border>
+          <Border Margin="24,16,24,0" VerticalAlignment="Top" Background="{StaticResource Brush.Surface.1}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" Padding="16"
+                  Visibility="{Binding ShowRecovery, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+              <TextBlock Text="{Binding RecoveryMessage}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                <Button Content="{Binding RecoveryAction}" Command="{Binding RestoreRecoveryCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
+                <Button Content="Dismiss" Command="{Binding DismissRecoveryCommand}" Style="{StaticResource Button.Secondary}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <Border Background="{StaticResource Brush.Background}" Visibility="{Binding ShowFirstRun, Converter={StaticResource BoolToVis}}">
+            <StackPanel MaxWidth="560" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="32">
+              <TextBlock Text="{Binding FirstRunHeadline}" Style="{StaticResource Text.PageTitle}" />
+              <TextBlock Text="{Binding FirstRunBody}" Style="{StaticResource Text.Subtitle}" Margin="0,16,0,0" TextWrapping="Wrap" />
+              <Button Content="Continue" Command="{Binding DismissFirstRunCommand}" Margin="0,24,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Primary}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

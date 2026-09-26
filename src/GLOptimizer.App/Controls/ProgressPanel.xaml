@@ -1,0 +1,20 @@
+<UserControl x:Class="GLOptimizer.App.Controls.ProgressPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             Background="Transparent">
+  <Border Style="{StaticResource Card}">
+    <StackPanel>
+      <TextBlock Text="{Binding Title, ElementName=Root}" Style="{StaticResource Text.Section}" />
+      <TextBlock Text="{Binding Message, ElementName=Root}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,16" />
+      <Grid Height="4">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="{Binding Progress, ElementName=Root, Converter={StaticResource ProgressStar}, ConverterParameter=fill}" />
+          <ColumnDefinition Width="{Binding Progress, ElementName=Root, Converter={StaticResource ProgressStar}, ConverterParameter=rest}" />
+        </Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Background="{StaticResource Brush.Text.Primary}" CornerRadius="2" />
+        <Border Grid.Column="1" Background="{StaticResource Brush.Surface.3}" CornerRadius="2" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

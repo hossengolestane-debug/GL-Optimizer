@@ -1,0 +1,22 @@
+<UserControl x:Class="GLOptimizer.App.Controls.DiagnosticRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:GLOptimizer.App.Controls"
+             x:Name="Root"
+             Background="Transparent">
+  <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" Padding="0,14">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel Margin="0,0,16,0">
+        <TextBlock Text="{Binding Title, ElementName=Root}" FontSize="14" />
+        <TextBlock Text="{Binding Detail, ElementName=Root}" Style="{StaticResource Text.Caption}" Margin="0,4,0,0" TextWrapping="Wrap" />
+      </StackPanel>
+      <controls:StatusBadge Grid.Column="1" VerticalAlignment="Center"
+                            Text="{Binding BadgeText, ElementName=Root}"
+                            Kind="{Binding Kind, ElementName=Root}" />
+    </Grid>
+  </Border>
+</UserControl>

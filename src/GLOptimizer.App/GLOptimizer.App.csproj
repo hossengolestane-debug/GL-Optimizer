@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- Compiles the Windows project on non-Windows hosts. The app still runs only on Windows. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>GLOptimizer.App</RootNamespace>
+    <AssemblyName>GLOptimizer</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\AppIcon.ico</ApplicationIcon>
+    <Description>GameLoop Performance &amp; App Market Utility</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="..\..\assets\AppIcon.ico" Link="Assets\AppIcon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GLOptimizer.Core\GLOptimizer.Core.csproj" />
+    <ProjectReference Include="..\GLOptimizer.Infrastructure\GLOptimizer.Infrastructure.csproj" />
+    <ProjectReference Include="..\GLOptimizer.GameLoop\GLOptimizer.GameLoop.csproj" />
+    <ProjectReference Include="..\GLOptimizer.Monitoring\GLOptimizer.Monitoring.csproj" />
+  </ItemGroup>
+
+</Project>

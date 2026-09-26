@@ -1,0 +1,49 @@
+<UserControl x:Class="GLOptimizer.App.Controls.StatusBadge"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:diag="clr-namespace:GLOptimizer.Core.Diagnostics;assembly=GLOptimizer.Core"
+             x:Name="Root"
+             Background="Transparent"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Center">
+  <Border HorizontalAlignment="Left">
+    <Border.Style>
+      <Style TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Brush.Surface.3}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,3" />
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding Kind, ElementName=Root}" Value="{x:Static diag:StatusKind.Ready}">
+            <Setter Property="Background" Value="{StaticResource Brush.Text.Primary}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Text.Primary}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Kind, ElementName=Root}" Value="{x:Static diag:StatusKind.Unavailable}">
+            <Setter Property="Background" Value="Transparent" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Kind, ElementName=Root}" Value="{x:Static diag:StatusKind.Attention}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Text.Primary}" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+    </Border.Style>
+    <TextBlock Text="{Binding Text, ElementName=Root}">
+      <TextBlock.Style>
+        <Style TargetType="TextBlock">
+          <Setter Property="FontSize" Value="11" />
+          <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding Kind, ElementName=Root}" Value="{x:Static diag:StatusKind.Ready}">
+              <Setter Property="Foreground" Value="{StaticResource Brush.Background}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind, ElementName=Root}" Value="{x:Static diag:StatusKind.Unavailable}">
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </TextBlock.Style>
+    </TextBlock>
+  </Border>
+</UserControl>
