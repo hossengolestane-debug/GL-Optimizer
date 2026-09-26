@@ -4,9 +4,9 @@ using GLOptimizer.Core.Results;
 namespace GLOptimizer.Core.Abstractions;
 
 /// <summary>
-/// App Market checks. Phase 0 must not read or modify App Market files.
+/// Reads App Market files under a verified GameLoop install. It does not delete, clear, or repair them.
 /// </summary>
 public interface IAppMarketDiagnostics
 {
-    OperationResult<AppMarketStatus> Check();
+    Task<OperationResult<AppMarketReport>> ScanAsync(bool checkOfficialVersion, CancellationToken cancellationToken = default);
 }

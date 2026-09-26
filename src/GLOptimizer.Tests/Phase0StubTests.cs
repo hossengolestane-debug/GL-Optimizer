@@ -31,7 +31,7 @@ public class Phase0StubTests
             .Cast<string>()
             .ToArray() ?? [];
         var config = await provider.GetRequiredService<IGameLoopConfigDiscovery>().DiscoverAsync(installPaths);
-        var market = provider.GetRequiredService<IAppMarketDiagnostics>().Check();
+        var market = await provider.GetRequiredService<IAppMarketDiagnostics>().ScanAsync(checkOfficialVersion: false);
         var backups = provider.GetRequiredService<IBackupService>();
         var listed = backups.List();
         var optimization = provider.GetRequiredService<IOptimizationService>();
@@ -45,13 +45,15 @@ public class Phase0StubTests
         Assert.Equal(OperationStatus.Success, config.Status);
         Assert.NotNull(config.Value);
         AssertNotImplemented(frames);
-        AssertNotImplemented(market);
+        Assert.Equal(OperationStatus.Success, market.Status);
+        Assert.NotNull(market.Value);
+        Assert.False(market.Value.OfficialRequested);
+        Assert.Null(market.Value.OfficialVersion);
         Assert.Equal(OperationStatus.Success, listed.Status);
         Assert.NotNull(listed.Value);
         Assert.Equal(OperationStatus.Success, analysis.Status);
         Assert.NotNull(analysis.Value);
         Assert.Null(frames.Value);
-        Assert.Null(market.Value);
         Assert.Equal(before, Snapshot(temp.Root));
     }
 

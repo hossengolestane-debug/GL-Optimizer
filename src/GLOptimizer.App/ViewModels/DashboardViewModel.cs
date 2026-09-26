@@ -21,6 +21,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
     private readonly ILogStore _log;
     private readonly IMonitoringCoordinator _monitoring;
     private readonly IOptimizationService _optimization;
+    private readonly ICodMobileDiagnostics _cod;
     private readonly INavigationService _navigation;
     private readonly OptimizationProfileSelection _profile;
     private readonly SynchronizationContext? _ui = SynchronizationContext.Current;
@@ -35,6 +36,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         ILogStore log,
         IMonitoringCoordinator monitoring,
         IOptimizationService optimization,
+        ICodMobileDiagnostics cod,
         INavigationService navigation,
         OptimizationProfileSelection profile)
         : base(AppPage.Dashboard)
@@ -44,6 +46,7 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         _log = log;
         _monitoring = monitoring;
         _optimization = optimization;
+        _cod = cod;
         _navigation = navigation;
         _profile = profile;
         _monitoring.Updated += OnMonitoringUpdated;
@@ -135,7 +138,19 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
                 return;
             }
 
-            Apply(hardwareTask.Result, gameTask.Result);
+            CodMobileReport? codReport = null;
+            var cod = await _cod.RunAsync(checkOfficialVersion: false, token);
+            if (!_session.IsCurrent(generation))
+            {
+                return;
+            }
+
+            if (cod.Succeeded)
+            {
+                codReport = cod.Value;
+            }
+
+            Apply(hardwareTask.Result, gameTask.Result, codReport);
             if (!_session.IsCurrent(generation))
             {
                 return;
@@ -186,7 +201,8 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
 
     private void Apply(
         OperationResult<HardwareReport> hardware,
-        OperationResult<GameLoopScan> scan)
+        OperationResult<GameLoopScan> scan,
+        CodMobileReport? codReport)
     {
         var report = hardware.Succeeded ? hardware.Value : null;
         var found = scan.Succeeded ? scan.Value : null;
@@ -215,7 +231,6 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         GameCards.Clear();
         GameCards.Add(new GameStatusCard("GameLoop", "Verified install", gameLoopStatus.Badge, StatusLine, "G", gameLoopStatus.Kind));
         var pubg = DetectionText.ForMobile(found?.PubgMobile, !scan.Succeeded);
-        var cod = DetectionText.ForMobile(found?.CodMobile, !scan.Succeeded);
         GameCards.Add(new GameStatusCard(
             "PUBG Mobile",
             HardwareText.Text(found?.PubgMobile.PackageId),
@@ -223,13 +238,14 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
             found?.PubgMobile.Detail ?? "Unknown",
             "P",
             pubg.Kind));
+        var codCard = CodCard(found?.CodMobile, codReport, !scan.Succeeded);
         GameCards.Add(new GameStatusCard(
             "COD Mobile",
             HardwareText.Text(found?.CodMobile.PackageId),
-            cod.Badge,
-            found?.CodMobile.Detail ?? "Unknown",
+            codCard.Badge,
+            codCard.Detail,
             "C",
-            cod.Kind));
+            codCard.Kind));
 
         Installs.Clear();
         if (found is not null)
@@ -243,6 +259,26 @@ public partial class DashboardViewModel : PageViewModel, IRefreshable
         OnPropertyChanged(nameof(HasInstalls));
         _log.Write(LogSeverity.Information, "Scan", OverallText + ". " + StatusLine);
         ReloadActivity();
+    }
+
+    private static (string Badge, string Detail, StatusKind Kind) CodCard(MobileGamePresence? presence, CodMobileReport? report, bool scanFailed)
+    {
+        var presenceStatus = DetectionText.ForMobile(presence, scanFailed);
+        var presenceDetail = presence?.Detail ?? "Unknown";
+        if (report is null)
+        {
+            return (presenceStatus.Badge, presenceDetail, presenceStatus.Kind);
+        }
+
+        var market = report.Market;
+        return market.Comparison switch
+        {
+            CatalogComparison.VersionMismatch => (CatalogComparisonLogic.Badge(market.Comparison), market.Issue ?? presenceDetail, StatusKind.Attention),
+            CatalogComparison.LocalMarketOutdated => (CatalogComparisonLogic.Badge(market.Comparison), market.Issue ?? presenceDetail, StatusKind.Attention),
+            CatalogComparison.Match => (CatalogComparisonLogic.Badge(market.Comparison), market.Issue ?? "Installed and market versions match.", StatusKind.Ready),
+            CatalogComparison.RemoteCatalogIssue => (CatalogComparisonLogic.Badge(market.Comparison), CatalogComparisonLogic.RemoteMessage, StatusKind.Attention),
+            _ => (presenceStatus.Badge, presenceDetail, presenceStatus.Kind)
+        };
     }
 
     private void OnMonitoringUpdated(object? sender, EventArgs e)

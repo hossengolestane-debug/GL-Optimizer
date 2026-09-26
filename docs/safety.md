@@ -28,6 +28,10 @@ Phase 4 copies files that discovery marked Found into `%LocalAppData%\GLOptimize
 
 Phase 5 may replace a value only when that key was already found in a parsed, non-unreadable file and the current value is valid. It does not add keys, create files, or write the registry. It refuses to write while GameLoop is running. It creates a Phase 4 backup first and restores that backup if the read-back does not match. Graphics preference, process priority, power mode, background apps, and benchmark mode are not changed.
 
-App Market files are still not opened. **Close** and **Restart** still do not kill a process.
+Phase 6 reads COD Mobile package folders, process paths, window titles on Windows, a short CPU sample, the Phase 3 renderer, and engine log lines under the verified install. It does not upload logs. **Open in GameLoop**, **Restart Engine**, and **Repair Market** do not run.
+
+Phase 7 reads App Market paths under a verified install and may open a SQLite file with `Mode=ReadOnly`. It does not delete cache, write metadata, or repair the market. **CHECK AGAIN** does not use the network. **Check Version** calls `IOfficialVersionSource`, which currently contacts no host. **DRY RUN REPAIR** and **REPAIR APP MARKET** do not run. **Close** and **Restart** still do not kill a process.
+
+Phase 8 is the plan for a dry run, a backup, an allowlisted cache repair, a refresh, a separate restart, validation, and a local-versus-remote conclusion. It is not implemented. The remote-catalog message is reserved for evidence that a local repair cannot produce.
 
 Developer mode is a debug-build switch. It can write a local debug log line. It cannot enable hidden actions in a Release build.

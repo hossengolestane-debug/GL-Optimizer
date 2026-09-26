@@ -16,7 +16,16 @@ public static class GameLoopServiceCollectionExtensions
         services.AddSingleton<IOptimizationService, OptimizationEngine>();
         services.AddSingleton<IProcessStarter, WindowsProcessStarter>();
         services.AddSingleton<IGameLoopLauncher, GameLoopLauncher>();
-        services.AddSingleton<IAppMarketDiagnostics, NotImplementedAppMarketDiagnostics>();
+        services.AddSingleton<IOfficialVersionSource, UnavailableOfficialVersionSource>();
+        services.AddSingleton<IWindowTitleSource, WindowTitleProbe>();
+        services.AddSingleton<AppMarketDetector>();
+        services.AddSingleton<AppMarketCacheManager>();
+        services.AddSingleton<AppMarketVersionService>();
+        services.AddSingleton<CodMobileVersionChecker>();
+        services.AddSingleton<CodMobileDetector>();
+        services.AddSingleton<CodMobileLaunchDiagnostics>();
+        services.AddSingleton<IAppMarketDiagnostics, AppMarketDiagnostics>();
+        services.AddSingleton<ICodMobileDiagnostics, CodMobileDiagnostics>();
         return services;
     }
 }

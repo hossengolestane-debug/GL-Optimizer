@@ -18,7 +18,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
     private readonly IFrameMetricsProvider _frames;
     private readonly IGameLoopDetector _gameLoop;
     private readonly IGameLoopConfigDiscovery _config;
-    private readonly IAppMarketDiagnostics _market;
+    private readonly ICodMobileDiagnostics _cod;
     private readonly IOptimizationService _optimization;
     private readonly IBackupService _backups;
     private readonly ScanSession _session = new();
@@ -29,7 +29,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
         IFrameMetricsProvider frames,
         IGameLoopDetector gameLoop,
         IGameLoopConfigDiscovery config,
-        IAppMarketDiagnostics market,
+        ICodMobileDiagnostics cod,
         IOptimizationService optimization,
         IBackupService backups)
         : base(AppPage.Diagnostics)
@@ -39,7 +39,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
         _frames = frames;
         _gameLoop = gameLoop;
         _config = config;
-        _market = market;
+        _cod = cod;
         _optimization = optimization;
         _backups = backups;
     }
@@ -89,7 +89,12 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
             {
                 Rows.Add(new DiagnosticRowModel("Frame metrics", Phase0Notices.NoFrameMetrics, "Unavailable", StatusKind.Unavailable));
             }
-            Add("App Market", _market.Check());
+            await AddMarketAndCodAsync(token);
+            if (!_session.IsCurrent(generation))
+            {
+                return;
+            }
+
             await AddOptimizationAsync(token);
             AddBackups(_backups.List());
         }
@@ -123,7 +128,6 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
         {
             Rows.Add(new DiagnosticRowModel("GameLoop", result.Error ?? "GameLoop could not be scanned.", "Needs attention", StatusKind.Attention));
             Rows.Add(new DiagnosticRowModel("PUBG Mobile", "Unknown", "Unknown", StatusKind.Unavailable));
-            Rows.Add(new DiagnosticRowModel("COD Mobile", "Unknown", "Unknown", StatusKind.Unavailable));
             return;
         }
 
@@ -135,9 +139,7 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
             product.Badge,
             product.Kind));
         var pubg = DetectionText.ForMobile(scan.PubgMobile, false);
-        var cod = DetectionText.ForMobile(scan.CodMobile, false);
         Rows.Add(new DiagnosticRowModel("PUBG Mobile", scan.PubgMobile.Detail ?? pubg.Badge, pubg.Badge, pubg.Kind));
-        Rows.Add(new DiagnosticRowModel("COD Mobile", scan.CodMobile.Detail ?? cod.Badge, cod.Badge, cod.Kind));
     }
 
     private async Task AddConfigAsync(OperationResult<GameLoopScan> result, CancellationToken token)
@@ -221,6 +223,93 @@ public partial class DiagnosticsViewModel : PageViewModel, IRefreshable
             present > 0 ? "Reported" : "Unknown",
             present > 0 ? StatusKind.Ready : StatusKind.Unavailable));
     }
+
+    private async Task AddMarketAndCodAsync(CancellationToken token)
+    {
+        var result = await _cod.RunAsync(checkOfficialVersion: false, token);
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            var detail = result.Error ?? "The check could not finish.";
+            Rows.Add(new DiagnosticRowModel("APP MARKET", detail, "UNKNOWN", StatusKind.Unavailable));
+            Rows.Add(new DiagnosticRowModel("COD MOBILE", detail, "UNKNOWN", StatusKind.Unavailable));
+            return;
+        }
+
+        var report = result.Value;
+        var market = report.Market;
+        var comparison = OutcomeFor(market.Comparison);
+        Rows.Add(new DiagnosticRowModel(
+            "APP MARKET",
+            market.Issue ?? market.Detail ?? "No comparison detail was recorded.",
+            Badge(comparison),
+            KindFor(comparison)));
+        Rows.Add(VersionRow("APP MARKET / Installed version", market.InstalledVersion, "The installed version is read from a COD Mobile package folder. Unknown means no unambiguous version file was found."));
+        Rows.Add(VersionRow("APP MARKET / Market version", market.MarketVersion, "The market version is read from App Market metadata under the verified install. Unknown means that metadata did not contain one unambiguous version."));
+        Rows.Add(new DiagnosticRowModel(
+            "APP MARKET / Official version",
+            market.OfficialDetail ?? "Official version was not requested.",
+            market.OfficialVersion is null ? "UNKNOWN" : "PASS",
+            market.OfficialVersion is null ? StatusKind.Unavailable : StatusKind.Ready));
+        Rows.Add(new DiagnosticRowModel(
+            "APP MARKET / Last scan",
+            market.LastScanUtc?.ToString("u", System.Globalization.CultureInfo.InvariantCulture) ?? "Unknown",
+            market.LastScanUtc is null ? "UNKNOWN" : "PASS",
+            market.LastScanUtc is null ? StatusKind.Unavailable : StatusKind.Ready));
+
+        Rows.Add(new DiagnosticRowModel(
+            "COD MOBILE",
+            report.InstalledDetail ?? "COD Mobile presence was not reported.",
+            DetectionText.Presence(report.InstalledStatus),
+            DetectionText.PresenceKind(report.InstalledStatus)));
+        foreach (var finding in report.Findings)
+        {
+            Rows.Add(new DiagnosticRowModel(
+                "COD MOBILE / " + finding.Title,
+                finding.Evidence + " Recommended action: " + finding.RecommendedAction,
+                Badge(finding.Outcome),
+                KindFor(finding.Outcome)));
+        }
+    }
+
+    private static DiagnosticRowModel VersionRow(string title, string? version, string explanation)
+    {
+        var known = !string.IsNullOrWhiteSpace(version);
+        return new DiagnosticRowModel(
+            title,
+            known ? version + ". " + explanation : "Unknown. " + explanation,
+            known ? "PASS" : "UNKNOWN",
+            known ? StatusKind.Ready : StatusKind.Unavailable);
+    }
+
+    private static FindingOutcome OutcomeFor(CatalogComparison comparison) => comparison switch
+    {
+        CatalogComparison.Match => FindingOutcome.Pass,
+        CatalogComparison.VersionMismatch => FindingOutcome.Failed,
+        CatalogComparison.LocalMarketOutdated => FindingOutcome.Warning,
+        CatalogComparison.RemoteCatalogIssue => FindingOutcome.Warning,
+        _ => FindingOutcome.Unknown
+    };
+
+    private static string Badge(FindingOutcome outcome) => outcome switch
+    {
+        FindingOutcome.Pass => "PASS",
+        FindingOutcome.Warning => "WARNING",
+        FindingOutcome.Failed => "FAILED",
+        _ => "UNKNOWN"
+    };
+
+    private static StatusKind KindFor(FindingOutcome outcome) => outcome switch
+    {
+        FindingOutcome.Pass => StatusKind.Ready,
+        FindingOutcome.Warning => StatusKind.Attention,
+        FindingOutcome.Failed => StatusKind.Attention,
+        _ => StatusKind.Unavailable
+    };
 
     private async Task AddOptimizationAsync(CancellationToken token)
     {

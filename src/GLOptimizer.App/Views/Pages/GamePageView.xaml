@@ -14,8 +14,59 @@
                          Detail="{Binding CardDetail}"
                          Monogram="{Binding Monogram}"
                          Kind="{Binding Kind}" />
+      <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding IsCodPage, Converter={StaticResource BoolToVis}}">
+        <StackPanel>
+          <TextBlock Text="COD Mobile" Style="{StaticResource Text.Section}" />
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,12,0,0" TextWrapping="Wrap">
+            <Run Text="Installed" />
+            <Run Text="  " />
+            <Run Text="{Binding InstalledVersion, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap">
+            <Run Text="GameLoop Market" />
+            <Run Text="  " />
+            <Run Text="{Binding MarketVersion, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap">
+            <Run Text="Official detected" />
+            <Run Text="  " />
+            <Run Text="{Binding OfficialVersion, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock Text="{Binding OfficialDetail}" Style="{StaticResource Text.Caption}" Margin="0,4,0,0" TextWrapping="Wrap" />
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap">
+            <Run Text="Status" />
+            <Run Text="  " />
+            <Run Text="{Binding ComparisonText, Mode=OneWay}" />
+          </TextBlock>
+          <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+            <Button Content="Check Version" Command="{Binding CheckVersionCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
+            <Button Content="Run Diagnostics" Command="{Binding RunDiagnosticsCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}" />
+            <Button Content="Open in GameLoop" IsEnabled="False" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"
+                    ToolTip="Not implemented." ToolTipService.ShowOnDisabled="True" />
+            <Button Content="Restart Engine" IsEnabled="False" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"
+                    ToolTip="Not implemented. This would stop a process." ToolTipService.ShowOnDisabled="True" />
+            <Button Content="Repair Market" IsEnabled="False" Style="{StaticResource Button.Secondary}"
+                    ToolTip="Available in Phase 8." ToolTipService.ShowOnDisabled="True" />
+          </StackPanel>
+          <ItemsControl ItemsSource="{Binding Findings}" Margin="0,16,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="0,0,0,12">
+                  <TextBlock TextWrapping="Wrap">
+                    <Run Text="{Binding Outcome, Mode=OneWay}" />
+                    <Run Text="  " />
+                    <Run Text="{Binding Title, Mode=OneWay}" />
+                  </TextBlock>
+                  <TextBlock Text="{Binding Evidence}" Style="{StaticResource Text.Caption}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Action}" Style="{StaticResource Text.Caption}" Margin="0,2,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
-        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" />
+        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
       </Border>
     </StackPanel>
   </ScrollViewer>

@@ -9,12 +9,70 @@
       <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,20" />
       <Border Style="{StaticResource Card}">
         <StackPanel>
-          <TextBlock Text="Diagnostics" Style="{StaticResource Text.Section}" />
-          <TextBlock Text="{Binding Message}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" />
+          <TextBlock Text="App Market" Style="{StaticResource Text.Section}" />
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,12,0,0" TextWrapping="Wrap">
+            <Run Text="Status" />
+            <Run Text="  " />
+            <Run Text="{Binding StatusText, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap">
+            <Run Text="Installed" />
+            <Run Text="  " />
+            <Run Text="{Binding InstalledVersion, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap">
+            <Run Text="Market" />
+            <Run Text="  " />
+            <Run Text="{Binding MarketVersion, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap">
+            <Run Text="Official" />
+            <Run Text="  " />
+            <Run Text="{Binding OfficialVersion, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock Text="{Binding OfficialDetail}" Style="{StaticResource Text.Caption}" Margin="0,4,0,0" TextWrapping="Wrap" />
+          <TextBlock Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap">
+            <Run Text="Last scan" />
+            <Run Text="  " />
+            <Run Text="{Binding LastScan, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock Text="Detected issue" Style="{StaticResource Text.Section}" Margin="0,16,0,0" />
+          <TextBlock Text="{Binding Issue}" Style="{StaticResource Text.Subtitle}" Margin="0,8,0,0" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+            <Button Content="CHECK AGAIN" Command="{Binding CheckAgainCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
+            <Button Content="DRY RUN REPAIR" IsEnabled="False" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"
+                    ToolTip="Available in Phase 8." ToolTipService.ShowOnDisabled="True" />
+            <Button Content="REPAIR APP MARKET" IsEnabled="False" Style="{StaticResource Button.Secondary}"
+                    ToolTip="Available in Phase 8." ToolTipService.ShowOnDisabled="True" />
+          </StackPanel>
+          <Expander Header="What will be changed?" Margin="0,16,0,0">
+            <StackPanel Margin="0,8,0,0">
+              <TextBlock Text="{Binding RepairNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding RepairTargets}" Margin="0,12,0,0">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="0,0,0,10">
+                      <TextBlock Text="{Binding Path}" TextWrapping="Wrap" />
+                      <TextBlock Style="{StaticResource Text.Caption}" TextWrapping="Wrap">
+                        <Run Text="{Binding Kind, Mode=OneWay}" />
+                        <Run Text=" · " />
+                        <Run Text="{Binding Confidence, Mode=OneWay}" />
+                        <Run Text=" · " />
+                        <Run Text="{Binding Size, Mode=OneWay}" />
+                        <Run Text=" · " />
+                        <Run Text="{Binding Written, Mode=OneWay}" />
+                      </TextBlock>
+                      <TextBlock Text="{Binding Reason}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Expander>
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}" Margin="0,16,0,0">
-        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" />
+        <TextBlock Text="{Binding SafetyNote}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" />
       </Border>
     </StackPanel>
   </ScrollViewer>
