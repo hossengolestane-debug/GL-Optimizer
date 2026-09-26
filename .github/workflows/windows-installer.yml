@@ -1,5 +1,9 @@
 name: windows-installer
 
+concurrency:
+  group: windows-installer-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
   pull_request:
@@ -54,23 +58,38 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          function Wait-Exit([System.Diagnostics.Process]$Process, [int]$Seconds, [string]$Label) {
+            if ($Process.WaitForExit($Seconds * 1000)) { return }
+            try { Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue } catch {}
+            throw "$Label did not exit within $Seconds seconds."
+          }
+          # The runner token is a filtered admin token. Allow the installer to elevate without a consent prompt.
+          Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "ConsentPromptBehaviorAdmin" -Value 0 -Type DWord
           $setup = Join-Path (Get-Location) "installer\output\GL-Optimizer-Setup.exe"
           if (-not (Test-Path $setup)) { throw "Setup was not produced." }
           $dir = "C:\glopt-smoke"
+          $setupLog = "C:\glopt-setup.log"
           if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
-          $install = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$dir" -Wait -PassThru
-          if ($install.ExitCode -ne 0) { throw "Install exited $($install.ExitCode)" }
+          Write-Host "Installing to $dir"
+          $install = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$dir","/LOG=$setupLog" -PassThru
+          Wait-Exit $install 180 "Install"
+          if ($install.ExitCode -ne 0) {
+            if (Test-Path $setupLog) { Get-Content $setupLog -Tail 80 }
+            throw "Install exited $($install.ExitCode)"
+          }
           $exe = Join-Path $dir "GLOptimizer.exe"
           if (-not (Test-Path $exe)) { throw "GLOptimizer.exe was not installed." }
           $key = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{8F4E2A1C-6B3D-4E90-9C1A-7D5E2F8A4B16}_is1"
           if (-not (Test-Path $key)) { throw "Uninstall registry entry is missing." }
           $display = (Get-ItemProperty $key).DisplayName
           if ($display -ne "GL Optimizer") { throw "Unexpected DisplayName: $display" }
-          $smoke = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -PassThru -NoNewWindow
-          if (-not $smoke.WaitForExit(90000)) {
-            Stop-Process -Id $smoke.Id -Force
-            throw "Smoke test did not exit."
-          }
+          Write-Host "Launching smoke test"
+          $out = Join-Path $env:TEMP "glopt-smoke-out.txt"
+          $err = Join-Path $env:TEMP "glopt-smoke-err.txt"
+          $smoke = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+          Wait-Exit $smoke 90 "Smoke test"
+          Write-Host "smoke stdout:"; if (Test-Path $out) { Get-Content $out }
+          Write-Host "smoke stderr:"; if (Test-Path $err) { Get-Content $err }
           if ($smoke.ExitCode -ne 0) { throw "Smoke test exited $($smoke.ExitCode)" }
           $userData = Join-Path $env:LOCALAPPDATA "GLOptimizer"
           if (-not (Test-Path $userData)) { throw "User data was not created by startup." }
@@ -80,8 +99,10 @@ jobs:
             if (Select-String -Path $log.FullName -Pattern "GL Optimizer smoke test ok" -Quiet) { $marker = $true }
           }
           if (-not $marker) { throw "Smoke marker was not written to the log." }
+          Write-Host "Uninstalling"
           $unins = Join-Path $dir "unins000.exe"
-          $remove = Start-Process -FilePath $unins -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          $remove = Start-Process -FilePath $unins -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -PassThru
+          Wait-Exit $remove 180 "Uninstall"
           if ($remove.ExitCode -ne 0) { throw "Uninstall exited $($remove.ExitCode)" }
           $deadline = (Get-Date).AddSeconds(30)
           while ((Test-Path $exe) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 1 }
